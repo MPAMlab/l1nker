@@ -1,34 +1,31 @@
 import { SignJWT, jwtVerify } from 'jose';
-import bcrypt from 'bcrypt';
+import { scrypt, randomBytes } from 'scrypt-js';
 
-const secretKey = new TextEncoder().encode(
-    'cc0b812112d219452473e28499862a93e047616149a171d8266509f8a055163f',
-);
 
-addEventListener('fetch', (event) => {
-    event.respondWith(handleRequest(event));
-});
+export default {
+    async fetch(request, env, ctx) {
+      const url = new URL(request.url);
+      const pathname = url.pathname;
+      const secretKey = new TextEncoder().encode(env.JWT_SECRET_KEY);
 
-async function handleRequest(event) {
-    const { request } = event;
-    const url = new URL(request.url);
-    const pathname = url.pathname;
+      if (pathname.startsWith('/api/data')) {
+          const key = url.searchParams.get('key') || 'default';
+          return handleApiData(key);
+      }
+      if (pathname === '/api/login' && request.method === 'POST') {
+          return handleLogin(request, env, secretKey);
+      }
+      if (pathname === '/api/register' && request.method === 'POST') {
+          return handleRegister(request, env, secretKey);
+      }
+      if (pathname.startsWith('/api/admin/data')) {
+          return handleAdminData(request, pathname, env, secretKey);
+      }
 
-    if (pathname.startsWith('/api/data')) {
-        const key = url.searchParams.get('key') || 'default';
-        return handleApiData(key);
-    }
-    if (pathname === '/api/register' && request.method === 'POST') {
-        return handleRegister(request);
-    }
-    if (pathname === '/api/login' && request.method === 'POST') {
-        return handleLogin(request);
-    }
-    if (pathname.startsWith('/api/admin/data')) {
-        return handleAdminData(request, pathname);
-    }
-    return fetch(request);
-}
+      // For all other request, let cloudflare handle it
+      return fetch(request);
+    },
+};
 
 async function handleApiData(key) {
     try {
@@ -47,6 +44,7 @@ async function handleApiData(key) {
                 redirectKey = ?;
         `;
         const { results } = await L1NKER_DB.prepare(query).bind(key).all();
+
         if (results.length === 0) {
             return new Response(JSON.stringify({ error: `No data found for key: ${key}` }), {
                 status: 404,
@@ -63,7 +61,7 @@ async function handleApiData(key) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-            }
+            },
         );
     } catch (error) {
         return new Response(JSON.stringify({ error: error.message }), {
@@ -73,29 +71,7 @@ async function handleApiData(key) {
     }
 }
 
-
-async function handleRegister(request) {
-    try {
-        const { username, password } = await request.json();
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-        const query = `
-            INSERT INTO l1nker_user (username, password)
-            VALUES (?, ?);
-        `;
-        await L1NKER_DB.prepare(query).bind(username, hashedPassword).run();
-        return new Response(JSON.stringify({ message: 'Successfully registered' }), {
-            headers: { 'Content-Type': 'application/json' },
-        });
-    } catch (error) {
-        return new Response(JSON.stringify({ message: error.message }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-        });
-    }
-}
-
-async function handleLogin(request) {
+async function handleLogin(request, env, secretKey) {
     try {
         const { username, password } = await request.json();
         const query = `SELECT id, username, password, managed_projects FROM l1nker_user WHERE username = ?`;
@@ -106,8 +82,10 @@ async function handleLogin(request) {
                 headers: { 'Content-Type': 'application/json' },
             });
         }
+
         const user = results[0];
-        const passwordMatch = await bcrypt.compare(password, user.password);
+        // 使用 scrypt 进行密码校验
+        const passwordMatch = await verifyPassword(password, user.password);
         if (!passwordMatch) {
             return new Response(JSON.stringify({ message: 'Invalid credentials' }), {
                 status: 401,
@@ -118,7 +96,7 @@ async function handleLogin(request) {
             userId: user.id,
             username: user.username,
             managedProjects: user.managed_projects,
-            exp: Math.floor(Date.now() / 1000) + 60 * 60, // 过期时间：1小时
+            exp: Math.floor(Date.now() / 1000) + (60 * 60), // 过期时间：1小时
         };
         const token = await new SignJWT(jwtPayload)
             .setProtectedHeader({ alg: 'HS256' })
@@ -135,7 +113,27 @@ async function handleLogin(request) {
     }
 }
 
-async function handleAdminData(request, pathname) {
+async function handleRegister(request, env, secretKey) {
+    try {
+        const { username, password } = await request.json();
+        const hashedPassword = await hashPassword(password);
+        const query = `
+            INSERT INTO l1nker_user (username, password)
+            VALUES (?, ?);
+        `;
+        await L1NKER_DB.prepare(query).bind(username, hashedPassword).run();
+        return new Response(JSON.stringify({ message: 'Successfully registered' }), {
+            headers: { 'Content-Type': 'application/json' },
+        });
+    } catch (error) {
+        return new Response(JSON.stringify({ message: error.message }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+}
+
+async function handleAdminData(request, pathname, env, secretKey) {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return new Response(JSON.stringify({ message: 'Unauthorized' }), {
@@ -148,35 +146,44 @@ async function handleAdminData(request, pathname) {
         const { payload } = await jwtVerify(token, secretKey);
         const { managedProjects, userId, username } = payload;
         if (managedProjects !== '*') {
-          // 查询用户可以管理的项目列表
-            const query = `SELECT * FROM landing_page WHERE redirectKey IN (${managedProjects.split(',').map(key => `'${key}'`).join(',')})`;
-             const { results } = await L1NKER_DB.prepare(query).all()
+            //查询用户可以管理的项目列表
+            const query = `SELECT * FROM landing_page WHERE redirectKey IN (${managedProjects
+                .split(',')
+                .map((key) => `'${key}'`)
+                .join(',')})`;
+            const { results } = await L1NKER_DB.prepare(query).all();
+            //判断是否有权限
             if (!results || results.length === 0) {
-              return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-                  status: 403,
-                  headers: { 'Content-Type': 'application/json' },
-              });
+                return new Response(JSON.stringify({ message: 'Unauthorized' }), {
+                    status: 403,
+                    headers: { 'Content-Type': 'application/json' },
+                });
             }
             request.managedProjects = results;
         } else {
-             request.managedProjects = '*';
+            request.managedProjects = '*';
         }
+
         request.userId = userId;
         request.username = username;
-
     } catch (error) {
         return new Response(JSON.stringify({ message: 'Unauthorized' }), {
             status: 401,
             headers: { 'Content-Type': 'application/json' },
         });
     }
+
+    // 如果验证通过，则继续处理请求
+    // 数据库查询和更新代码
     try {
         if (request.method === 'GET') {
             let query;
             if (request.managedProjects === '*') {
                 query = `SELECT * FROM landing_page`;
             } else {
-                query = `SELECT * FROM landing_page WHERE redirectKey IN (${request.managedProjects.map(item => `'${item.redirectKey}'`).join(',')})`;
+                query = `SELECT * FROM landing_page WHERE redirectKey IN (${request.managedProjects
+                    .map((item) => `'${item.redirectKey}'`)
+                    .join(',')})`;
             }
             const { results } = await L1NKER_DB.prepare(query).all();
             return new Response(JSON.stringify(results), {
@@ -185,7 +192,6 @@ async function handleAdminData(request, pathname) {
                 },
             });
         }
-
         if (request.method === 'POST') {
             const newItem = await request.json();
             const query = `
@@ -193,7 +199,16 @@ async function handleAdminData(request, pathname) {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
             `;
             await L1NKER_DB.prepare(query)
-                .bind(newItem.redirectKey, newItem.profileImageUrl, newItem.title, newItem.subtitle, JSON.stringify(newItem.buttons), newItem.buttonColor, newItem.faviconUrl, newItem.pageTitle)
+                .bind(
+                    newItem.redirectKey,
+                    newItem.profileImageUrl,
+                    newItem.title,
+                    newItem.subtitle,
+                    JSON.stringify(newItem.buttons),
+                    newItem.buttonColor,
+                    newItem.faviconUrl,
+                    newItem.pageTitle,
+                )
                 .run();
             return new Response(JSON.stringify({ message: 'Successfully created' }), {
                 headers: {
@@ -203,14 +218,18 @@ async function handleAdminData(request, pathname) {
         }
         const redirectKey = pathname.split('/').pop();
         if (request.method === 'PUT') {
-             const updatedItem = await request.json()
+            const updatedItem = await request.json();
             //确保只有管理员或者有权限的用户才能更新
-            if(request.managedProjects !== '*' && !request.managedProjects.some(item => item.redirectKey === redirectKey)){
-              return new Response(JSON.stringify({ message: 'Unauthorized' }), {
+            if (
+                request.managedProjects !== '*' &&
+                !request.managedProjects.some((item) => item.redirectKey === redirectKey)
+            ) {
+                return new Response(JSON.stringify({ message: 'Unauthorized' }), {
                     status: 403,
                     headers: { 'Content-Type': 'application/json' },
-              });
+                });
             }
+
             const query = `
                 UPDATE landing_page
                 SET profileImageUrl = ?,
@@ -223,23 +242,32 @@ async function handleAdminData(request, pathname) {
                 WHERE redirectKey = ?;
             `;
             await L1NKER_DB.prepare(query)
-              .bind(updatedItem.profileImageUrl, updatedItem.title, updatedItem.subtitle, JSON.stringify(updatedItem.buttons), updatedItem.buttonColor, updatedItem.faviconUrl, updatedItem.pageTitle, redirectKey)
-             .run()
+                .bind(
+                    updatedItem.profileImageUrl,
+                    updatedItem.title,
+                    updatedItem.subtitle,
+                    JSON.stringify(updatedItem.buttons),
+                    updatedItem.buttonColor,
+                    updatedItem.faviconUrl,
+                    updatedItem.pageTitle,
+                    redirectKey,
+                )
+                .run();
             return new Response(JSON.stringify({ message: 'Successfully updated' }), {
                 headers: {
-                  'Content-Type': 'application/json',
+                    'Content-Type': 'application/json',
                 },
             });
         }
 
         if (request.method === 'DELETE') {
-          //确保只有管理员或者有权限的用户才能删除
-            if(request.managedProjects !== '*' && !request.managedProjects.some(item => item.redirectKey === redirectKey)){
+             //确保只有管理员或者有权限的用户才能删除
+              if(request.managedProjects !== '*' && !request.managedProjects.some(item => item.redirectKey === redirectKey)){
                 return new Response(JSON.stringify({ message: 'Unauthorized' }), {
                     status: 403,
                    headers: { 'Content-Type': 'application/json' },
-               });
-            }
+                });
+              }
             const query = `DELETE FROM landing_page WHERE redirectKey = ?;`;
             await L1NKER_DB.prepare(query).bind(redirectKey).run();
             return new Response(JSON.stringify({ message: 'Successfully deleted' }), {
@@ -259,3 +287,26 @@ async function handleAdminData(request, pathname) {
         });
     }
 }
+
+async function hashPassword(password) {
+    const salt = randomBytes(16).toString('hex');
+    const derivedKey = await scrypt(password, salt, {
+        N: 16384,
+        r: 8,
+        p: 1,
+        dkLen: 32,
+    });
+    return `${salt}:${Buffer.from(derivedKey).toString('hex')}`;
+}
+
+async function verifyPassword(password, hashedPassword) {
+    const [salt, hashed] = hashedPassword.split(':');
+    const derivedKey = await scrypt(password, salt, {
+        N: 16384,
+        r: 8,
+        p: 1,
+        dkLen: 32,
+    });
+    return Buffer.from(derivedKey).toString('hex') === hashed;
+}
+
