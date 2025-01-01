@@ -18,7 +18,7 @@
   </template>
   
   <script>
-  import LinkButton from './components/LinkButton.vue';
+  import LinkButton from './LinkButton.vue';
   
   export default {
     components: {
