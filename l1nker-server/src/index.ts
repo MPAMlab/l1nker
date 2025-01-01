@@ -18,7 +18,9 @@ export default {
     if (pathname.startsWith('/api/admin/data')) {
       return handleAdminData(request, pathname, env);
     }
-
+	if (pathname === '/api/upload' && request.method === 'POST') {
+        return handleUpload(request, env);
+      }
     // For all other request, let cloudflare handle it
     return fetch(request);
   },
@@ -73,7 +75,34 @@ async function handleApiData(key: string, env: Env): Promise<Response> {
     }
 }
 
+async function handleUpload(request: Request, env: Env): Promise<Response> {
+	try{
+	  const formData = await request.formData();
+		const file = formData.get('file') as File | null;
+		if(!file){
+			  return new Response(JSON.stringify({ message: "No file uploaded" }), {
+				  status: 400,
+				  headers: { 'Content-Type': 'application/json' },
+			  });
+		}
+		const fileBuffer = await file.arrayBuffer();
+		 const fileName = `${crypto.randomUUID()}-${file.name}`;
+		  await env.MY_R2_BUCKET.put(fileName, fileBuffer);
 
+		const imageUrl = `https://${env.MY_R2_BUCKET.name}.r2.dev/${fileName}`;
+		return new Response(JSON.stringify({ imageUrl }), {
+			headers: {
+				'Content-Type': 'application/json',
+			},
+		});
+
+	}catch(e){
+	   return new Response(JSON.stringify({message: "Failed to upload file"}), {
+		   status:500,
+			headers: { 'Content-Type': 'application/json' },
+	   })
+	}
+}
 async function handleLogin(request: Request, env: Env): Promise<Response> {
     try {
         const { username, password } = await request.json() as { username: string; password: string };
@@ -462,4 +491,5 @@ async function verifyPassword(
 interface Env {
     l1nker_db: D1Database;
     JWT_SECRET_KEY: string;
+	MY_R2_BUCKET: R2Bucket;
 }
