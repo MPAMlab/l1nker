@@ -212,10 +212,28 @@
                  this.error = error.message || "Error fetching data"
              }
          },
-      handleRowClick(row){
-           this.selectedItem = { ...row }
-          this.showEditModal = true;
-      },
+     handleRowClick(row) {
+       // 对 row 进行深拷贝，并确保所有值都是字符串
+        this.selectedItem = this.deepCopyAndStringify(row);
+        this.showEditModal = true;
+     },
+        deepCopyAndStringify(obj) {
+             const copy = {};
+             for (const key in obj) {
+                  if (obj.hasOwnProperty(key)) {
+                    if (typeof obj[key] === 'object' && obj[key] !== null) {
+                      if (Array.isArray(obj[key])) {
+                           copy[key] = obj[key].map(item => this.deepCopyAndStringify(item));
+                      } else {
+                          copy[key] = this.deepCopyAndStringify(obj[key])
+                     }
+                    } else {
+                     copy[key] = String(obj[key]);
+                     }
+                  }
+              }
+              return copy;
+            },
          closeEditModal(){
              this.showEditModal = false;
              this.selectedItem = {
