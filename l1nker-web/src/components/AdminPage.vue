@@ -50,10 +50,10 @@
                 <el-form-item label="Buttons">
                <el-button type="primary" @click="addButton"><el-icon><Plus /></el-icon>Add Button</el-button>
               <div v-if="parsedButtons && parsedButtons.length > 0" style="margin-top: 10px;">
-                     <div v-for="(button, index) in parsedButtons" :key="index" style="border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px;">
-                       <el-select  v-model="selectedButtonIndex" @change="selectButton(index)" placeholder="Select Button" style="margin-bottom: 10px;">
-                             <el-option :value="index" :label="button.text" />
-                       </el-select>
+                    <div v-for="(button, index) in parsedButtons" :key="index" style="border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px;">
+                           <div style="margin-bottom: 10px;">
+                               <span style="font-weight: bold;">Button #{{index + 1}}:</span>
+                            </div>
                          <el-form-item label="Text">
                              <el-input v-model="button.text" />
                          </el-form-item>
@@ -176,7 +176,6 @@
              pageTitle: ''
          },
          parsedButtons: [],
-         selectedButtonIndex: null
      };
    },
    watch: {
@@ -223,7 +222,6 @@
       },
          closeEditModal(){
              this.showEditModal = false;
-              this.selectedButtonIndex = null;
              this.selectedItem = {
                  id:null,
                  redirectKey: '',
@@ -359,15 +357,10 @@
          },
          addButton(){
             this.parsedButtons.push({ text: '', link: '', isDownload: false });
-            this.selectButton(this.parsedButtons.length - 1)
          },
          removeButton(index){
              this.parsedButtons.splice(index, 1);
-             this.selectedButtonIndex = null
          },
-       selectButton(index){
-         this.selectedButtonIndex = index;
-       }
    },
  };
  </script>
