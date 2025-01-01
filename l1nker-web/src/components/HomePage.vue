@@ -30,7 +30,6 @@ export default {
   },
   data() {
       return {
-          redirectKey: null,
           profileImageUrl: '',
           title: '',
           subtitle: '',
@@ -43,14 +42,20 @@ export default {
       };
   },
   async created() {
-    this.redirectKey = window.location.pathname.substring(1); // 从 URL 获取 redirectKey
-     if (!this.redirectKey) {
-        console.log("redirectKey not found, set to default")
-        this.redirectKey = "default";
-    }
-      console.log("redirectKey:", this.redirectKey);
-      console.log("window.location.pathname:", window.location.pathname);
-    await this.fetchData();
+
+       const redirectKey = this.$route.params.redirectKey
+       if(!redirectKey) {
+            console.log("redirectKey not found, set to default")
+             this.redirectKey = 'default'
+       } else {
+           this.redirectKey = redirectKey
+            console.log("redirectKey:", this.redirectKey);
+             console.log("window.location.pathname:", window.location.pathname);
+       }
+
+
+       await this.fetchData();
+
   },
   methods: {
       async fetchData() {
@@ -104,7 +109,6 @@ export default {
 };
 </script>
 <style scoped>
-  /*  其他样式保持不变*/
   #app{
      display: flex;
      flex-direction: column;

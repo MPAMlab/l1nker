@@ -5,15 +5,15 @@ import LoginPage from './components/LoginPage.vue';
 
 const routes = [
     { path: '/', component: HomePage },
-    { path: '/admin', component: AdminPage, meta: { requiresAuth: true } }, // 需要登录的路由
+    { path: '/admin', component: AdminPage, meta: { requiresAuth: true } }, 
     { path: '/login', component: LoginPage },
+    { path: '/:redirectKey', component: HomePage } 
 ];
 
 const router = createRouter({
     history: createWebHistory(),
     routes,
 });
-
 
 router.beforeEach((to, from, next) => {
     const isAuthenticated = localStorage.getItem('authToken');
@@ -25,4 +25,5 @@ router.beforeEach((to, from, next) => {
       next();
    }
 });
+
 export default router;
