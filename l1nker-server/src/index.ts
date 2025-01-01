@@ -1,33 +1,30 @@
 import { SignJWT, jwtVerify } from 'jose';
-import { scrypt, randomBytes } from 'scrypt-js';
-
 
 export default {
-    async fetch(request, env, ctx) {
-      const url = new URL(request.url);
-      const pathname = url.pathname;
-      const secretKey = new TextEncoder().encode(env.JWT_SECRET_KEY);
+    async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+        const url = new URL(request.url);
+        const pathname = url.pathname;
 
-      if (pathname.startsWith('/api/data')) {
-          const key = url.searchParams.get('key') || 'default';
-          return handleApiData(key);
-      }
-      if (pathname === '/api/login' && request.method === 'POST') {
-          return handleLogin(request, env, secretKey);
-      }
-      if (pathname === '/api/register' && request.method === 'POST') {
-          return handleRegister(request, env, secretKey);
-      }
-      if (pathname.startsWith('/api/admin/data')) {
-          return handleAdminData(request, pathname, env, secretKey);
-      }
+        if (pathname.startsWith('/api/data')) {
+            const key = url.searchParams.get('key') || 'default';
+            return handleApiData(key, env);
+        }
+        if (pathname === '/api/login' && request.method === 'POST') {
+            return handleLogin(request, env);
+        }
+        if (pathname === '/api/register' && request.method === 'POST') {
+            return handleRegister(request, env);
+        }
+        if (pathname.startsWith('/api/admin/data')) {
+            return handleAdminData(request, pathname, env);
+        }
 
-      // For all other request, let cloudflare handle it
-      return fetch(request);
+        // For all other request, let cloudflare handle it
+        return fetch(request);
     },
 };
 
-async function handleApiData(key) {
+async function handleApiData(key: string, env: Env): Promise<Response> {
     try {
         const query = `
             SELECT
@@ -43,8 +40,13 @@ async function handleApiData(key) {
             WHERE
                 redirectKey = ?;
         `;
-        const { results } = await L1NKER_DB.prepare(query).bind(key).all();
-
+        const { results } = await env?.l1nker_db?.prepare(query).bind(key).all();
+        if (!results) {
+            return new Response(JSON.stringify({ error: "l1nker_db binding failed." }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
         if (results.length === 0) {
             return new Response(JSON.stringify({ error: `No data found for key: ${key}` }), {
                 status: 404,
@@ -71,11 +73,17 @@ async function handleApiData(key) {
     }
 }
 
-async function handleLogin(request, env, secretKey) {
+async function handleLogin(request: Request, env: Env): Promise<Response> {
     try {
-        const { username, password } = await request.json();
+        const { username, password } = await request.json() as { username: string; password: string };
         const query = `SELECT id, username, password, managed_projects FROM l1nker_user WHERE username = ?`;
-        const { results } = await L1NKER_DB.prepare(query).bind(username).all();
+        const { results } = await env?.l1nker_db?.prepare(query).bind(username).all();
+        if (!results) {
+            return new Response(JSON.stringify({ error: "l1nker_db binding failed." }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
         if (results.length === 0) {
             return new Response(JSON.stringify({ message: 'Invalid credentials' }), {
                 status: 401,
@@ -84,8 +92,10 @@ async function handleLogin(request, env, secretKey) {
         }
 
         const user = results[0];
-        // 使用 scrypt 进行密码校验
-        const passwordMatch = await verifyPassword(password, user.password);
+        console.log("数据库中的哈希密码:", user.password);
+        // 使用 PBKDF2 进行密码校验
+        const passwordMatch = await verifyPassword(password, user.password, env);
+        console.log("用户输入密码的哈希结果：", passwordMatch);
         if (!passwordMatch) {
             return new Response(JSON.stringify({ message: 'Invalid credentials' }), {
                 status: 401,
@@ -100,7 +110,7 @@ async function handleLogin(request, env, secretKey) {
         };
         const token = await new SignJWT(jwtPayload)
             .setProtectedHeader({ alg: 'HS256' })
-            .sign(secretKey);
+            .sign(new TextEncoder().encode(env.JWT_SECRET_KEY));
 
         return new Response(JSON.stringify({ token }), {
             headers: { 'Content-Type': 'application/json' },
@@ -113,15 +123,21 @@ async function handleLogin(request, env, secretKey) {
     }
 }
 
-async function handleRegister(request, env, secretKey) {
+async function handleRegister(request: Request, env: Env): Promise<Response> {
     try {
-        const { username, password } = await request.json();
-        const hashedPassword = await hashPassword(password);
+        const { username, password } = await request.json() as { username: string; password: string };
+        const hashedPassword = await hashPassword(password, env);
         const query = `
             INSERT INTO l1nker_user (username, password)
             VALUES (?, ?);
         `;
-        await L1NKER_DB.prepare(query).bind(username, hashedPassword).run();
+        const dbResult = await env?.l1nker_db?.prepare(query).bind(username, hashedPassword).run();
+        if (!dbResult) {
+            return new Response(JSON.stringify({ error: "l1nker_db binding failed." }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
         return new Response(JSON.stringify({ message: 'Successfully registered' }), {
             headers: { 'Content-Type': 'application/json' },
         });
@@ -132,8 +148,12 @@ async function handleRegister(request, env, secretKey) {
         });
     }
 }
-
-async function handleAdminData(request, pathname, env, secretKey) {
+interface AuthorizedRequest extends Request{
+  managedProjects: string |  Array<{ redirectKey: string }>;
+  userId: number;
+  username: string;
+}
+async function handleAdminData(request: Request, pathname: string, env: Env): Promise<Response> {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return new Response(JSON.stringify({ message: 'Unauthorized' }), {
@@ -143,15 +163,24 @@ async function handleAdminData(request, pathname, env, secretKey) {
     }
     const token = authHeader.substring(7);
     try {
-        const { payload } = await jwtVerify(token, secretKey);
-        const { managedProjects, userId, username } = payload;
+        const { payload } = await jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET_KEY));
+        const { managedProjects, userId, username } = payload as { managedProjects: string; userId: number; username: string };
+        (request as AuthorizedRequest).managedProjects = managedProjects;
+        (request as AuthorizedRequest).userId = userId;
+        (request as AuthorizedRequest).username = username;
         if (managedProjects !== '*') {
             //查询用户可以管理的项目列表
             const query = `SELECT * FROM landing_page WHERE redirectKey IN (${managedProjects
                 .split(',')
                 .map((key) => `'${key}'`)
                 .join(',')})`;
-            const { results } = await L1NKER_DB.prepare(query).all();
+            const { results } = await env?.l1nker_db?.prepare(query).all();
+            if (!results) {
+                return new Response(JSON.stringify({ error: "l1nker_db binding failed." }), {
+                    status: 500,
+                    headers: { 'Content-Type': 'application/json' },
+                });
+            }
             //判断是否有权限
             if (!results || results.length === 0) {
                 return new Response(JSON.stringify({ message: 'Unauthorized' }), {
@@ -159,13 +188,8 @@ async function handleAdminData(request, pathname, env, secretKey) {
                     headers: { 'Content-Type': 'application/json' },
                 });
             }
-            request.managedProjects = results;
-        } else {
-            request.managedProjects = '*';
+            (request as AuthorizedRequest).managedProjects = results;
         }
-
-        request.userId = userId;
-        request.username = username;
     } catch (error) {
         return new Response(JSON.stringify({ message: 'Unauthorized' }), {
             status: 401,
@@ -178,14 +202,20 @@ async function handleAdminData(request, pathname, env, secretKey) {
     try {
         if (request.method === 'GET') {
             let query;
-            if (request.managedProjects === '*') {
+            if ((request as AuthorizedRequest).managedProjects === '*') {
                 query = `SELECT * FROM landing_page`;
             } else {
-                query = `SELECT * FROM landing_page WHERE redirectKey IN (${request.managedProjects
+                query = `SELECT * FROM landing_page WHERE redirectKey IN (${(request as AuthorizedRequest).managedProjects
                     .map((item) => `'${item.redirectKey}'`)
                     .join(',')})`;
             }
-            const { results } = await L1NKER_DB.prepare(query).all();
+            const { results } = await env?.l1nker_db?.prepare(query).all();
+            if (!results) {
+                return new Response(JSON.stringify({ error: "l1nker_db binding failed." }), {
+                    status: 500,
+                    headers: { 'Content-Type': 'application/json' },
+                });
+            }
             return new Response(JSON.stringify(results), {
                 headers: {
                     'Content-Type': 'application/json',
@@ -193,12 +223,12 @@ async function handleAdminData(request, pathname, env, secretKey) {
             });
         }
         if (request.method === 'POST') {
-            const newItem = await request.json();
+            const newItem = await request.json() as any;
             const query = `
                 INSERT INTO landing_page (redirectKey, profileImageUrl, title, subtitle, buttons, buttonColor, faviconUrl, pageTitle)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
             `;
-            await L1NKER_DB.prepare(query)
+            const dbResult = await env?.l1nker_db?.prepare(query)
                 .bind(
                     newItem.redirectKey,
                     newItem.profileImageUrl,
@@ -210,26 +240,31 @@ async function handleAdminData(request, pathname, env, secretKey) {
                     newItem.pageTitle,
                 )
                 .run();
+            if (!dbResult) {
+                return new Response(JSON.stringify({ error: "l1nker_db binding failed." }), {
+                    status: 500,
+                    headers: { 'Content-Type': 'application/json' },
+                });
+            }
             return new Response(JSON.stringify({ message: 'Successfully created' }), {
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
         }
-        const redirectKey = pathname.split('/').pop();
+        const redirectKey = pathname.split('/').pop() || '';
         if (request.method === 'PUT') {
-            const updatedItem = await request.json();
+            const updatedItem = await request.json() as any;
             //确保只有管理员或者有权限的用户才能更新
-            if (
-                request.managedProjects !== '*' &&
-                !request.managedProjects.some((item) => item.redirectKey === redirectKey)
+             if (
+                (request as AuthorizedRequest).managedProjects !== '*' &&
+                !((request as AuthorizedRequest).managedProjects as Array<{redirectKey: string}>).some((item) => item.redirectKey === redirectKey)
             ) {
                 return new Response(JSON.stringify({ message: 'Unauthorized' }), {
                     status: 403,
                     headers: { 'Content-Type': 'application/json' },
                 });
             }
-
             const query = `
                 UPDATE landing_page
                 SET profileImageUrl = ?,
@@ -241,7 +276,7 @@ async function handleAdminData(request, pathname, env, secretKey) {
                     pageTitle = ?
                 WHERE redirectKey = ?;
             `;
-            await L1NKER_DB.prepare(query)
+            const dbResult = await env?.l1nker_db?.prepare(query)
                 .bind(
                     updatedItem.profileImageUrl,
                     updatedItem.title,
@@ -253,6 +288,12 @@ async function handleAdminData(request, pathname, env, secretKey) {
                     redirectKey,
                 )
                 .run();
+            if (!dbResult) {
+                return new Response(JSON.stringify({ error: "l1nker_db binding failed." }), {
+                    status: 500,
+                    headers: { 'Content-Type': 'application/json' },
+                });
+            }
             return new Response(JSON.stringify({ message: 'Successfully updated' }), {
                 headers: {
                     'Content-Type': 'application/json',
@@ -261,15 +302,22 @@ async function handleAdminData(request, pathname, env, secretKey) {
         }
 
         if (request.method === 'DELETE') {
-             //确保只有管理员或者有权限的用户才能删除
-              if(request.managedProjects !== '*' && !request.managedProjects.some(item => item.redirectKey === redirectKey)){
-                return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-                    status: 403,
-                   headers: { 'Content-Type': 'application/json' },
+            //确保只有管理员或者有权限的用户才能删除
+              if ((request as AuthorizedRequest).managedProjects !== '*' &&
+              !((request as AuthorizedRequest).managedProjects as Array<{redirectKey: string}>).some(item => item.redirectKey === redirectKey))
+              {
+                  return new Response(JSON.stringify({ message: 'Unauthorized' }), {
+                      status: 403,
+                      headers: { 'Content-Type': 'application/json' },
+                  });
+            }
+            const dbResult = await env?.l1nker_db?.prepare(`DELETE FROM landing_page WHERE redirectKey = ?;`).bind(redirectKey).run();
+            if (!dbResult) {
+                return new Response(JSON.stringify({ error: "l1nker_db binding failed." }), {
+                    status: 500,
+                    headers: { 'Content-Type': 'application/json' },
                 });
-              }
-            const query = `DELETE FROM landing_page WHERE redirectKey = ?;`;
-            await L1NKER_DB.prepare(query).bind(redirectKey).run();
+            }
             return new Response(JSON.stringify({ message: 'Successfully deleted' }), {
                 headers: {
                     'Content-Type': 'application/json',
@@ -288,25 +336,66 @@ async function handleAdminData(request, pathname, env, secretKey) {
     }
 }
 
-async function hashPassword(password) {
-    const salt = randomBytes(16).toString('hex');
-    const derivedKey = await scrypt(password, salt, {
-        N: 16384,
-        r: 8,
-        p: 1,
-        dkLen: 32,
-    });
-    return `${salt}:${Buffer.from(derivedKey).toString('hex')}`;
+async function hashPassword(
+    password: string,
+    env: Env,
+    providedSalt?: Uint8Array
+): Promise<string> {
+    const encoder = new TextEncoder();
+    // Use provided salt if available, otherwise generate a new one
+    const salt = providedSalt || crypto.getRandomValues(new Uint8Array(16));
+    const keyMaterial = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(password),
+        { name: "PBKDF2" },
+        false,
+        ["deriveBits", "deriveKey"]
+    );
+    // 使用 deriveBits 而不是 deriveKey 来导出原始的 PBKDF2 密钥
+    const derivedBits = await crypto.subtle.deriveBits(
+        {
+            name: "PBKDF2",
+            salt: salt,
+            iterations: 100000,
+            hash: "SHA-256",
+        },
+        keyMaterial,
+        256 // 指定需要的密钥长度
+    );
+    const hashBuffer = new Uint8Array(derivedBits);
+    const hashArray = Array.from(hashBuffer);
+    const hashHex = hashArray
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    const saltHex = Array.from(salt)
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    return `${saltHex}:${hashHex}`;
+
 }
 
-async function verifyPassword(password, hashedPassword) {
-    const [salt, hashed] = hashedPassword.split(':');
-    const derivedKey = await scrypt(password, salt, {
-        N: 16384,
-        r: 8,
-        p: 1,
-        dkLen: 32,
-    });
-    return Buffer.from(derivedKey).toString('hex') === hashed;
+async function verifyPassword(
+    passwordAttempt: string,
+    storedHash: string,
+    env: Env,
+): Promise<boolean> {
+    const [saltHex, originalHash] = storedHash.split(":");
+    if (!saltHex || !originalHash) {
+      return false;
+    }
+    const salt = saltHex.match(/.{1,2}/g)?.reduce((acc, byte) => {
+      acc.push(parseInt(byte, 16));
+      return acc;
+    }, [] as number[])
+    if (!salt) {
+      throw new Error("Invalid salt format");
+    }
+    const attemptHashWithSalt = await hashPassword(passwordAttempt, env, new Uint8Array(salt));
+    const [, attemptHash] = attemptHashWithSalt.split(":");
+    return attemptHash === originalHash;
 }
 
+interface Env {
+    l1nker_db: D1Database;
+    JWT_SECRET_KEY: string;
+}

@@ -3,7 +3,9 @@ name = "l1nker-server"
 main = "src/index.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
-
+routes = [
+  { pattern = "sp.srt.pub/*", zone_name = "srt.pub" },
+]
 # Workers Logs
 # Docs: https://developers.cloudflare.com/workers/observability/logs/workers-logs/
 # Configuration: https://developers.cloudflare.com/workers/observability/logs/workers-logs/#enable-workers-logs
@@ -113,7 +115,7 @@ enabled = true
 # binding = "MY_INDEX"
 # index_name = "my-index"
 [[d1_databases]]
-binding = "L1NKER_DB"
+binding = "l1nker_db"
 database_id = "aae152df-b2c7-439f-828c-b348e6114b09"
 database_name = "l1nker_db"
 
