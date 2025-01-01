@@ -117,8 +117,8 @@
           <el-form-item label="Subtitle">
             <el-input v-model="newItem.subtitle"  />
          </el-form-item>
-          <el-form-item label="Buttons (JSON Array)">
-            <el-input v-model="newItem.buttons"  />
+           <el-form-item label="Buttons (JSON Array)">
+             <el-input v-model="newItem.buttons" type="textarea" />
          </el-form-item>
            <el-form-item label="Button Color">
              <el-color-picker v-model="newItem.buttonColor" />
@@ -179,16 +179,12 @@
      };
    },
    watch: {
-       'selectedItem.buttons': {
+     'selectedItem.buttons': {
          handler(newVal) {
-             try {
-                   this.parsedButtons = JSON.parse(newVal);
-                }catch(e){
-                 this.parsedButtons = []
-               }
-          },
-          immediate:true
-       }
+             this.parseButtons(newVal);
+         },
+         immediate: true
+     },
    },
    async created() {
      await this.fetchData();
@@ -243,7 +239,7 @@
                         'Content-Type': 'application/json',
                          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                      },
-                      body: JSON.stringify({...this.selectedItem, buttons: JSON.stringify(this.parsedButtons)}),
+                     body: JSON.stringify({...this.selectedItem, buttons: JSON.stringify(this.parsedButtons)}),
                  });
                  if (!response.ok) {
                      const errorData = await response.json();
@@ -275,15 +271,22 @@
                  this.error = error.message || "Error deleting item"
              }
          },
-         async createItem() {
+          async createItem() {
             try {
+               let buttonsToSave;
+              try {
+                 buttonsToSave = JSON.parse(this.newItem.buttons);
+              } catch (e) {
+                 buttonsToSave = [];
+                console.error("Error parsing buttons JSON",e);
+              }
                   const response = await fetch('/api/admin/data', {
                      method: 'POST',
                      headers: {
                          'Content-Type': 'application/json',
                          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                      },
-                     body: JSON.stringify({...this.newItem, buttons: JSON.stringify(JSON.parse(this.newItem.buttons))}),
+                     body: JSON.stringify({...this.newItem, buttons: JSON.stringify(buttonsToSave)}),
                  });
                  if(!response.ok){
                      const errorData = await response.json();
@@ -361,6 +364,14 @@
          removeButton(index){
              this.parsedButtons.splice(index, 1);
          },
+       parseButtons(buttonsString){
+          try {
+              this.parsedButtons = JSON.parse(buttonsString);
+         } catch (e) {
+             this.parsedButtons = [];
+              console.error("Error parsing buttons JSON",e);
+           }
+         }
    },
  };
  </script>
