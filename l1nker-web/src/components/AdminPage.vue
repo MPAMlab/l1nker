@@ -33,7 +33,7 @@
               <el-upload
                  class="upload-demo"
                :action="'/api/upload'"
-               :on-success="handleUploadSuccess"
+               :on-success="handleProfileImageUploadSuccess"
                :before-upload="beforeUpload"
                 :show-file-list="false"
               >
@@ -50,12 +50,25 @@
             <el-form-item label="Buttons (JSON Array)">
                <el-input type="textarea" v-model="selectedItem.buttons"  />
                </el-form-item>
-            <el-form-item label="Button Color">
-                <el-input v-model="selectedItem.buttonColor"  />
-             </el-form-item>
-             <el-form-item label="Favicon URL">
-                <el-input v-model="selectedItem.faviconUrl"  />
-              </el-form-item>
+           <el-form-item label="Button Color">
+             <el-color-picker v-model="selectedItem.buttonColor" />
+         </el-form-item>
+              <el-form-item label="Favicon">
+              <el-image
+                  style="width: 32px; height: 32px; margin-right: 10px;"
+                :src="selectedItem.faviconUrl"
+                fit="cover"
+              />
+                 <el-upload
+                   class="upload-demo"
+                   :action="'/api/upload'"
+                   :on-success="handleFaviconUploadSuccess"
+                   :before-upload="beforeUpload"
+                   :show-file-list="false"
+                 >
+                   <el-button type="primary"><el-icon><Upload /></el-icon>Upload Favicon</el-button>
+                 </el-upload>
+           </el-form-item>
               <el-form-item label="Page Title">
                   <el-input v-model="selectedItem.pageTitle"  />
              </el-form-item>
@@ -87,12 +100,12 @@
          <el-form-item label="Buttons (JSON Array)">
             <el-input v-model="newItem.buttons"  />
          </el-form-item>
-          <el-form-item label="Button Color">
-            <el-input v-model="newItem.buttonColor" />
-         </el-form-item>
-          <el-form-item label="Favicon URL">
-            <el-input v-model="newItem.faviconUrl"  />
-         </el-form-item>
+           <el-form-item label="Button Color">
+             <el-color-picker v-model="newItem.buttonColor" />
+            </el-form-item>
+            <el-form-item label="Favicon URL">
+              <el-input v-model="newItem.faviconUrl"  />
+           </el-form-item>
           <el-form-item label="Page Title">
             <el-input v-model="newItem.pageTitle"  />
          </el-form-item>
@@ -291,8 +304,11 @@
        localStorage.removeItem("authToken");
        this.$router.push("/login");
      },
-       handleUploadSuccess(response, file, fileList) {
-        this.selectedItem.profileImageUrl = response.imageUrl
+       handleProfileImageUploadSuccess(response) {
+            this.selectedItem.profileImageUrl = response.imageUrl
+       },
+       handleFaviconUploadSuccess(response) {
+            this.selectedItem.faviconUrl = response.imageUrl
        },
        beforeUpload(file){
              const isJPG = file.type === 'image/jpeg' || file.type === 'image/png';
