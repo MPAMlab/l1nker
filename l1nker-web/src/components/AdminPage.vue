@@ -16,7 +16,7 @@
             </el-table-column>
          </el-table>
  
-         <el-dialog v-model="showEditModal" :title="`Edit ${selectedItem.redirectKey}`" width="60%" @close="closeEditModal">
+         <el-dialog v-model="showEditModal" :title="`Edit ${selectedItem.redirectKey}`" width="80%" @close="closeEditModal">
          <el-form :model="selectedItem" label-width="150px">
               <el-form-item label="ID" v-if="selectedItem.id">
                    <el-input v-model="selectedItem.id" disabled/>
@@ -47,9 +47,29 @@
              <el-form-item label="Subtitle">
               <el-input v-model="selectedItem.subtitle"  />
               </el-form-item>
-            <el-form-item label="Buttons (JSON Array)">
-               <el-input type="textarea" v-model="selectedItem.buttons"  />
-               </el-form-item>
+                <el-form-item label="Buttons">
+               <el-button type="primary" @click="addButton"><el-icon><Plus /></el-icon>Add Button</el-button>
+              <div v-if="parsedButtons && parsedButtons.length > 0" style="margin-top: 10px;">
+                     <div v-for="(button, index) in parsedButtons" :key="index" style="border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px;">
+                       <el-select  v-model="selectedButtonIndex" @change="selectButton(index)" placeholder="Select Button" style="margin-bottom: 10px;">
+                             <el-option :value="index" :label="button.text" />
+                       </el-select>
+                         <el-form-item label="Text">
+                             <el-input v-model="button.text" />
+                         </el-form-item>
+                         <el-form-item label="Link">
+                             <el-input v-model="button.link" />
+                         </el-form-item>
+                         <el-form-item label="Is Download">
+                             <el-checkbox v-model="button.isDownload" />
+                         </el-form-item>
+                           <el-button type="danger" size="small" @click="removeButton(index)"><el-icon><Delete /></el-icon>Delete</el-button>
+                    </div>
+                 </div>
+                  <div v-else>
+                      <el-empty description="No buttons available."  />
+                     </div>
+             </el-form-item>
            <el-form-item label="Button Color">
              <el-color-picker v-model="selectedItem.buttonColor" />
          </el-form-item>
@@ -97,7 +117,7 @@
           <el-form-item label="Subtitle">
             <el-input v-model="newItem.subtitle"  />
          </el-form-item>
-         <el-form-item label="Buttons (JSON Array)">
+          <el-form-item label="Buttons (JSON Array)">
             <el-input v-model="newItem.buttons"  />
          </el-form-item>
            <el-form-item label="Button Color">
@@ -154,8 +174,22 @@
              buttonColor: '#FFFFFF',
              faviconUrl: '',
              pageTitle: ''
-         }
+         },
+         parsedButtons: [],
+         selectedButtonIndex: null
      };
+   },
+   watch: {
+       'selectedItem.buttons': {
+         handler(newVal) {
+             try {
+                   this.parsedButtons = JSON.parse(newVal);
+                }catch(e){
+                 this.parsedButtons = []
+               }
+          },
+          immediate:true
+       }
    },
    async created() {
      await this.fetchData();
@@ -189,6 +223,7 @@
       },
          closeEditModal(){
              this.showEditModal = false;
+              this.selectedButtonIndex = null;
              this.selectedItem = {
                  id:null,
                  redirectKey: '',
@@ -210,7 +245,7 @@
                         'Content-Type': 'application/json',
                          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                      },
-                      body: JSON.stringify(this.selectedItem),
+                      body: JSON.stringify({...this.selectedItem, buttons: JSON.stringify(this.parsedButtons)}),
                  });
                  if (!response.ok) {
                      const errorData = await response.json();
@@ -250,7 +285,7 @@
                          'Content-Type': 'application/json',
                          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                      },
-                     body: JSON.stringify(this.newItem),
+                     body: JSON.stringify({...this.newItem, buttons: JSON.stringify(JSON.parse(this.newItem.buttons))}),
                  });
                  if(!response.ok){
                      const errorData = await response.json();
@@ -321,7 +356,18 @@
                  this.$message.error('Image size must not exceed 2MB!');
              }
               return isJPG && isLt2M;
-         }
+         },
+         addButton(){
+            this.parsedButtons.push({ text: '', link: '', isDownload: false });
+            this.selectButton(this.parsedButtons.length - 1)
+         },
+         removeButton(index){
+             this.parsedButtons.splice(index, 1);
+             this.selectedButtonIndex = null
+         },
+       selectButton(index){
+         this.selectedButtonIndex = index;
+       }
    },
  };
  </script>
