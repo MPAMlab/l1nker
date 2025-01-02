@@ -160,7 +160,7 @@
                profileImageUrl: '',
                  title: '',
                   subtitle: '',
-               buttons: '[]',
+               buttons: [], // 修改为数组
                buttonColor: '#FFFFFF',
                faviconUrl: '',
                pageTitle: ''
@@ -170,7 +170,7 @@
             profileImageUrl: '',
              title: '',
               subtitle: '',
-             buttons: '[]',
+             buttons: '[]', // 保留字符串
              buttonColor: '#FFFFFF',
              faviconUrl: '',
              pageTitle: ''
@@ -207,28 +207,35 @@
                  // 初始化 newRedirectKey，用于编辑 redirectKey
                   this.data.forEach(item => {
                       item.newRedirectKey = item.redirectKey;
+                      if(item.buttons) {
+                           try {
+                             item.buttons = JSON.parse(item.buttons)
+                           } catch(e) {
+                                console.error("Error parsing buttons", e)
+                              item.buttons = []
+                            }
+                       }
                     });
              }catch(error){
                  this.error = error.message || "Error fetching data"
              }
          },
      handleRowClick(row) {
-       // 对 row 进行深拷贝，并确保所有值都是字符串
-        this.selectedItem = this.deepCopyAndStringify(row);
+        this.selectedItem = this.deepCopy(row);
         this.showEditModal = true;
      },
-        deepCopyAndStringify(obj) {
+        deepCopy(obj) {
              const copy = {};
              for (const key in obj) {
                   if (obj.hasOwnProperty(key)) {
                     if (typeof obj[key] === 'object' && obj[key] !== null) {
                       if (Array.isArray(obj[key])) {
-                           copy[key] = obj[key].map(item => this.deepCopyAndStringify(item));
+                           copy[key] = obj[key].map(item => this.deepCopy(item));
                       } else {
-                          copy[key] = this.deepCopyAndStringify(obj[key])
+                          copy[key] = this.deepCopy(obj[key])
                      }
                     } else {
-                     copy[key] = String(obj[key]);
+                     copy[key] = obj[key]; // 不强制转为字符串
                      }
                   }
               }
@@ -243,7 +250,7 @@
                  profileImageUrl: '',
                  title: '',
                  subtitle: '',
-                 buttons: '[]',
+                 buttons: [], // 修改为数组
                  buttonColor: '#FFFFFF',
                  faviconUrl: '',
                  pageTitle: ''
@@ -257,7 +264,7 @@
                         'Content-Type': 'application/json',
                          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                      },
-                     body: JSON.stringify({...this.selectedItem, buttons: JSON.stringify(this.parsedButtons)}),
+                    body: JSON.stringify({...this.selectedItem, buttons: this.parsedButtons}), // 直接传递 parsedButtons
                  });
                  if (!response.ok) {
                      const errorData = await response.json();
@@ -291,20 +298,20 @@
          },
           async createItem() {
             try {
-               let buttonsToSave;
-              try {
-                 buttonsToSave = JSON.parse(this.newItem.buttons);
-              } catch (e) {
-                 buttonsToSave = [];
-                console.error("Error parsing buttons JSON",e);
-              }
+                let buttonsToSave;
+                  try {
+                        buttonsToSave = JSON.parse(this.newItem.buttons);
+                  } catch (e) {
+                        buttonsToSave = [];
+                       console.error("Error parsing buttons JSON",e);
+                 }
                   const response = await fetch('/api/admin/data', {
                      method: 'POST',
                      headers: {
                          'Content-Type': 'application/json',
                          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                      },
-                     body: JSON.stringify({...this.newItem, buttons: JSON.stringify(buttonsToSave)}),
+                       body: JSON.stringify({...this.newItem, buttons: JSON.stringify(buttonsToSave)}),
                  });
                  if(!response.ok){
                      const errorData = await response.json();
@@ -348,7 +355,7 @@
                  profileImageUrl: '',
                  title: '',
                  subtitle: '',
-                 buttons: '[]',
+                 buttons: '[]', // 保留字符串
                  buttonColor: '#FFFFFF',
                  faviconUrl: '',
                  pageTitle: ''
@@ -382,18 +389,12 @@
          removeButton(index){
              this.parsedButtons.splice(index, 1);
          },
-       parseButtons(buttonsString){
-          try {
-              this.parsedButtons = JSON.parse(buttonsString);
-         } catch (e) {
-             this.parsedButtons = [];
-              console.error("Error parsing buttons JSON",e);
-           }
-         }
+       parseButtons(buttons){
+          this.parsedButtons = buttons
+        }
    },
  };
  </script>
  <style>
  
  </style>
- 
