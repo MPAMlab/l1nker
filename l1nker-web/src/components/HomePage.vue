@@ -25,7 +25,8 @@
     </div>
     <footer class="footer">
         <p class="powered-by">
-          Powered by <a href="https://github.com/MPAMlab/l1nker" target="_blank" rel="noopener noreferrer">L1nker by MPAM Laboratory.</a>
+          Powered by <a href="https://github.com/MPAMlab/l1nker" target="_blank" rel="noopener noreferrer">L1nker by MPAM Laboratory.</a><br>
+          This site currently don't use cookie to store your information.<br>This page may contain affiliate links.
         </p>
       </footer>
   </div>
@@ -279,10 +280,12 @@ body {
 .footer {
   width: 100%;
   text-align: center;
-  padding: 20px 0;
+  padding: 20px 0 20px;
   margin-top: auto;
   color: rgba(255, 255, 255, 0.7);
   font-size: 14px;
+  flex-shrink: 0;
+  z-index: 1;
 }
 
 .powered-by {
