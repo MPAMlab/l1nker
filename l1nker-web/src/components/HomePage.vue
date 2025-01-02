@@ -266,8 +266,8 @@ body {
   }
   
   .profile-image {
-    width: 100px;
-    height: 100px;
+    width: 200px;
+    height: 200px;
   }
 
   .button-container {
