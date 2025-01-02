@@ -207,7 +207,7 @@ export default {
 
     const logout = () => {
       localStorage.removeItem('authToken');
-      this.$router.push('/login');
+      this.$router.replace('/login');
     };
 
     onMounted(fetchData);
