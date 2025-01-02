@@ -2,11 +2,17 @@
   <a
     :href="link"
     class="link-button"
-    :style="{ backgroundColor: backgroundColor }"
+    :class="{ 'is-download': isDownload }"
+    :style="{ backgroundColor }"
     target="_blank"
+    rel="noopener noreferrer"
   >
-      <span>{{ text }}</span>
-      <div :style="{backgroundColor: isDownload ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)' , color: isDownload ? 'white' : 'black'  }">{{ isDownload ? '下载' : '播放' }}</div>
+    <div class="button-content">
+      <span class="service-name">{{ text }}</span>
+      <div class="action-badge">
+        {{ isDownload ? '下载' : '播放' }}
+      </div>
+    </div>
   </a>
 </template>
 
@@ -20,3 +26,43 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.link-button {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px 20px;
+  margin: 6px 0;
+  border-radius: 8px;
+  text-decoration: none;
+  color: white;
+  display: block;
+  transition: opacity 0.2s ease;
+}
+
+.link-button:hover {
+  opacity: 0.9;
+}
+
+.button-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.service-name {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.action-badge {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.is-download .action-badge {
+  background: rgba(255, 255, 255, 0.2);
+}
+</style>
