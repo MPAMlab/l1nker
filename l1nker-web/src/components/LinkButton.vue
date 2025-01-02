@@ -57,7 +57,7 @@ export default {
 
 .action-badge {
   background: rgba(0, 0, 0, 0.2);
-  padding: 4px 12px;
+  padding: 10px 20px;
   border-radius: 4px;
   font-size: 14px;
 }

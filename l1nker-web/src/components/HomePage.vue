@@ -206,8 +206,8 @@ body {
 }
 
 .profile-image {
-  width: 120px;
-  height: 120px;
+  width: 30vh;
+  height: 30vh;
   border-radius: 12px;
   margin-bottom: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -232,8 +232,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  width: 100%;
+  gap: 10px;
+  width: 85%;
   max-width: 460px;
   margin: 0 auto;
   padding: 0 16px;
@@ -266,8 +266,8 @@ body {
   }
   
   .profile-image {
-    width: 200px;
-    height: 200px;
+    width: 25vh;
+    height: 25vh;
   }
 
   .button-container {
