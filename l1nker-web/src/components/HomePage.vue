@@ -123,8 +123,25 @@ export default defineComponent({
 });
 </script>
 
+<style>
+/* 全局样式 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&display=swap');
+
+:root {
+  font-family: 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Noto Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #1a1a1a;
+}
+</style>
+
 <style scoped>
-/* Style remains the same as before */
 #app {
   min-height: 100vh;
   display: flex;
@@ -134,6 +151,7 @@ export default defineComponent({
   position: relative;
   background-color: #1a1a1a;
   color: white;
+  box-sizing: border-box;
 }
 
 .loading, .error {
@@ -150,6 +168,9 @@ export default defineComponent({
   max-width: 500px;
   z-index: 1;
   position: relative;
+  margin: 0 auto;
+  padding: 0 20px;
+  box-sizing: border-box;
 }
 
 .background-image {
@@ -177,7 +198,8 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 40px;
+  margin: 40px 0;
+  width: 100%;
 }
 
 .profile-image {
@@ -207,8 +229,12 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 0 16px;
+  box-sizing: border-box;
 }
 
 @media (max-width: 480px) {
@@ -219,6 +245,29 @@ export default defineComponent({
   .profile-image {
     width: 100px;
     height: 100px;
+  }
+
+  .button-container {
+    padding: 0 8px;
+    gap: 10px;
+  }
+
+  .title {
+    font-size: 22px;
+  }
+
+  .subtitle {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 360px) {
+  .content {
+    padding: 0 12px;
+  }
+
+  .button-container {
+    padding: 0 4px;
   }
 }
 </style>
