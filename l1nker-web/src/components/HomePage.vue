@@ -23,6 +23,11 @@
         />
       </div>
     </div>
+    <footer class="footer">
+        <p class="powered-by">
+          Powered by <a href="https://github.com/MPAMlab/l1nker" target="_blank" rel="noopener noreferrer">L1nker by MPAM Laboratory.</a>
+        </p>
+      </footer>
   </div>
 </template>
 
@@ -146,11 +151,6 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 20px;
-  position: relative;
-  background-color: #1a1a1a;
-  color: white;
   box-sizing: border-box;
 }
 
@@ -169,8 +169,11 @@ body {
   z-index: 1;
   position: relative;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 20px;
   box-sizing: border-box;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .background-image {
@@ -236,7 +239,27 @@ body {
   padding: 0 16px;
   box-sizing: border-box;
 }
+.footer {
+  width: 100%;
+  text-align: center;
+  padding: 20px 0;
+  margin-top: auto;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+}
 
+.powered-by {
+  margin: 0;
+  font-size: 12px;
+}
+.powered-by a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.powered-by a:hover {
+  color: white;
+}
 @media (max-width: 480px) {
   .content {
     padding: 0 16px;
@@ -259,6 +282,10 @@ body {
   .subtitle {
     font-size: 15px;
   }
+  .powered-by {
+    font-size: 11px;
+  }
+  
 }
 
 @media (max-width: 360px) {
