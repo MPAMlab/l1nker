@@ -89,7 +89,7 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 		 const fileName = `${crypto.randomUUID()}-${file.name}`;
 		  await env.MY_R2_BUCKET.put(fileName, fileBuffer);
 
-		const imageUrl = `https://${env.MY_R2_BUCKET.name}.r2.dev/${fileName}`;
+		const imageUrl = `https://${env.MY_R2_BUCKET}.r2.dev/${fileName}`;
 		return new Response(JSON.stringify({ imageUrl }), {
 			headers: {
 				'Content-Type': 'application/json',
