@@ -4,12 +4,12 @@
     <div v-else-if="error" class="error">Error: {{ error }}</div>
     <div v-else class="content">
       <div class="background-overlay"></div>
-      <img :src="profileImageUrl" class="background-image" />
+      <img :src="profileImageUrl" class="background-image" @load="handleImageLoad" />
       
       <div class="profile-section">
         <img :src="profileImageUrl" class="profile-image" alt="Profile" />
-        <h1 class="title">{{ title }}</h1>
-        <h2 class="subtitle">{{ subtitle }}</h2>
+        <h1 class="title" :style="{ color: textColor }">{{ title }}</h1>
+        <h2 class="subtitle" :style="{ color: textColor }">{{ subtitle }}</h2>
       </div>
 
       <div class="button-container">
@@ -32,8 +32,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, ref, onMounted } from 'vue';
 import LinkButton from './LinkButton.vue';
+import Color from 'color';
 
 interface Button {
   text: string;
@@ -48,32 +49,33 @@ export default defineComponent({
     LinkButton,
   },
   data() {
-    return {
-      profileImageUrl: '',
-      title: '',
-      subtitle: '',
-      buttons: [] as Button[],
-      defaultButtonColor: '#333333',
-      faviconUrl: '',
-      pageTitle: '',
-      loading: true,
-      error: null as string | null,
-      redirectKey: 'default',
-    };
+      return {
+          profileImageUrl: '',
+          title: '',
+          subtitle: '',
+          buttons: [] as Button[],
+          defaultButtonColor: '#333333',
+          faviconUrl: '',
+          pageTitle: '',
+          loading: true,
+          error: null as string | null,
+          redirectKey: 'default',
+          textColor: 'white',
+      };
   },
-  async created() {
-    const redirectKey = this.$route.params.redirectKey;
-    if (!redirectKey) {
-      console.log("redirectKey not found, set to default");
-      this.redirectKey = 'default';
-    } else {
-      this.redirectKey = redirectKey as string;
-      console.log("redirectKey:", this.redirectKey);
-      console.log("window.location.pathname:", window.location.pathname);
-    }
+ async created() {
+      const redirectKey = this.$route.params.redirectKey;
+      if (!redirectKey) {
+        console.log("redirectKey not found, set to default");
+        this.redirectKey = 'default';
+      } else {
+        this.redirectKey = redirectKey as string;
+        console.log("redirectKey:", this.redirectKey);
+        console.log("window.location.pathname:", window.location.pathname);
+      }
 
-    await this.fetchData();
-  },
+      await this.fetchData();
+    },
   methods: {
     async fetchData() {
       this.loading = true;
@@ -111,8 +113,7 @@ export default defineComponent({
       }
     },
     updateFaviconAndTitle() {
-      // Update favicon
-      let faviconLink = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
+        let faviconLink = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
       if (faviconLink) {
         faviconLink.href = this.faviconUrl;
       } else {
@@ -121,8 +122,44 @@ export default defineComponent({
         faviconLink.href = this.faviconUrl;
         document.head.appendChild(faviconLink);
       }
-      // Update title
       document.title = this.pageTitle;
+    },
+    handleImageLoad(event: Event) {
+      const imageElement = event.target as HTMLImageElement;
+      const imageUrl = imageElement.src;
+       this.calculateTextColor(imageUrl);
+    },
+   calculateTextColor(imageUrl:string) {
+        const img = new Image();
+        img.src = imageUrl;
+
+         img.onload = () => {
+             const canvas = document.createElement('canvas');
+             const ctx = canvas.getContext('2d');
+             if(!ctx) return;
+
+              canvas.width = img.naturalWidth;
+              canvas.height = img.naturalHeight;
+             ctx.drawImage(img, 0, 0);
+
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+             const data = imageData.data;
+             let totalBrightness = 0;
+             for (let i = 0; i < data.length; i += 4) {
+                 const r = data[i];
+                 const g = data[i + 1];
+                 const b = data[i + 2];
+                 const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                  totalBrightness += brightness;
+             }
+           const averageBrightness = totalBrightness / (data.length / 4);
+            const overlayBrightness = (0 * 299 + 0 * 587 + 0 * 114) / 1000 * 0.6;
+            const combinedBrightness = (averageBrightness + overlayBrightness) / 2
+           this.textColor = combinedBrightness < 128 ? 'white' : 'black';
+        }
+       img.onerror = () => {
+         this.textColor = 'white'
+        }
     },
   },
 });
