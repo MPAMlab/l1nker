@@ -8,10 +8,10 @@
     rel="noopener noreferrer"
   >
     <div class="button-content">
-       <font-awesome-icon v-if="!isDownload" :icon="['fas', 'play']" style="margin-right: 8px" />
-       <font-awesome-icon v-if="isDownload" :icon="['far', 'circle-down']" style="margin-right: 8px" />
        <span class="service-name">{{ text }}</span>
       <div class="action-badge">
+        <font-awesome-icon v-if="!isDownload" :icon="['fas', 'play']" style="margin-right: 8px" />
+        <font-awesome-icon v-if="isDownload" :icon="['far', 'circle-down']" style="margin-right: 8px" />
         {{ isDownload ? 'Download' : 'Play' }}
       </div>
     </div>
