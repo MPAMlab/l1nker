@@ -49,7 +49,7 @@
 import { ref, onMounted } from 'vue';
 import ItemForm from './ItemForm.vue';
 import { ElMessage } from 'element-plus';
-import _ from 'lodash'; 
+import _ from 'lodash';
 
 export default {
   components: {
@@ -90,7 +90,7 @@ export default {
     };
 
     const handleRowClick = (row) => {
-      selectedItem.value = _.cloneDeep(row); // 深拷贝 row 对象
+      selectedItem.value = { ...row, buttons: [...row.buttons] }; //浅拷贝按钮数组
       showEditModal.value = true;
     };
 

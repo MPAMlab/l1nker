@@ -135,10 +135,9 @@
 </template>
 
 <script>
-import { ref, defineComponent, watch, toRef } from 'vue';
+import { ref, defineComponent,  onMounted, onBeforeUpdate } from 'vue';
 import draggable from 'vuedraggable';
 import { Rank } from '@element-plus/icons-vue';
-import _ from 'lodash'; // 引入 lodash
 
 export default defineComponent({
   components: {
@@ -165,18 +164,14 @@ export default defineComponent({
     const editingIndex = ref(-1);
     const drag = ref(false);
 
-     const itemRef = toRef(props, 'item')
-      watch(itemRef, (newItem) => {
-        localButtons.value = _.cloneDeep(newItem.buttons || []);
-      }, {deep: true});
+    onMounted(() => {
+      localButtons.value = [...props.item.buttons];
+    });
 
-    watch(
-      localButtons,
-      (newValue) => {
-        props.item.buttons = [...newValue];
-      },
-      { deep: true }
-    );
+      onBeforeUpdate(() => {
+      localButtons.value = [...props.item.buttons]
+    })
+
 
     const addButton = () => {
       localButtons.value.push({
@@ -230,6 +225,7 @@ export default defineComponent({
       }
       return true;
     };
+
 
     return {
       localButtons,
