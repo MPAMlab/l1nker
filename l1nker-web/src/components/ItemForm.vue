@@ -55,7 +55,7 @@
                   class="drag-handle" 
                   style="cursor: move; padding: 4px;"
                 >
-                  <DragIcon />
+                  <Rank />
                 </el-icon>
               </div>
               <el-form-item label="Text">
@@ -108,12 +108,12 @@
 <script>
 import { ref, defineComponent, watch } from 'vue';
 import draggable from 'vuedraggable';
-import { DragIcon } from '@element-plus/icons-vue';
+import { Rank } from '@element-plus/icons-vue';
 
 export default defineComponent({
   components: {
     draggable,
-    DragIcon,
+    Rank,
   },
   props: {
     item: {
