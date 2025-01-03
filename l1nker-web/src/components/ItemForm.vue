@@ -37,17 +37,15 @@
         <el-icon><Plus /></el-icon>Add Button
       </el-button>
       <div v-if="buttons && buttons.length > 0" style="margin-top: 10px;">
-        <draggable v-model="buttons" tag="div"  handle=".drag-handle" >
+        <draggable v-model="buttons" tag="div" handle=".button-item">
           <div
             v-for="(button, index) in buttons"
             :key="index"
-            style="border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px; position: relative;"
+            style="border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px; cursor: move;"
+            class="button-item"
           >
             <div style="margin-bottom: 10px;">
               <span style="font-weight: bold;">Button #{{ index + 1 }}:</span>
-              <span class="drag-handle" style="position: absolute; top: 5px; right: 5px; cursor: move;">
-                <el-icon><Rank /></el-icon>
-              </span>
             </div>
             <el-form-item label="Text">
               <el-input v-model="button.text" />
@@ -96,13 +94,10 @@
 </template>
 
 <script>
-import { ref, defineComponent, watch, onMounted } from 'vue';
+import { ref, defineComponent } from 'vue';
 import draggable from 'vuedraggable';
 
 export default defineComponent({
-  components: {
-    draggable
-  },
   props: {
     item: {
       type: Object,
@@ -118,45 +113,8 @@ export default defineComponent({
     },
   },
   setup(props) {
-    const buttons = ref([]);
+    const buttons = ref(props.item.buttons || []);
     const itemForm = ref(null);
-
-    onMounted(() => {
-      if (props.item.buttons) {
-        try {
-          buttons.value = JSON.parse(props.item.buttons);
-        } catch (e) {
-          console.error("Failed to parse buttons JSON:", e);
-          buttons.value = [];
-        }
-      }
-    });
-
-
-    watch(
-      () => props.item.buttons,
-      (newButtons) => {
-        if (newButtons) {
-          try {
-            buttons.value = JSON.parse(newButtons);
-          } catch (e) {
-            console.error("Failed to parse buttons JSON:", e);
-            buttons.value = [];
-          }
-        } else {
-          buttons.value = [];
-        }
-      },
-      { immediate: true }
-    );
-
-    watch(
-      buttons,
-      (newButtons) => {
-        props.item.buttons = JSON.stringify(newButtons);
-      },
-      { deep: true }
-    );
 
     const addButton = () => {
       buttons.value.push({ text: '', link: '', isDownload: false });
@@ -201,8 +159,3 @@ export default defineComponent({
   },
 });
 </script>
-<style scoped>
-.drag-handle {
-  cursor: move;
-}
-</style>
