@@ -9,64 +9,72 @@
       <el-form :model="loginForm" label-width="80px">
         <el-form-item label="Username">
           <el-input
-            v-model="loginForm.username"
+            v-model.trim="loginForm.username"
             placeholder="Enter username"
           />
         </el-form-item>
         <el-form-item label="Password">
           <el-input
             type="password"
-            v-model="loginForm.password"
+            v-model.trim="loginForm.password"
             placeholder="Enter password"
               @keyup.enter="login"
           />
         </el-form-item>
-        <el-form-item>
+         <el-form-item>
           <el-checkbox v-model="loginForm.rememberMe">Remember Me</el-checkbox>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="login">Login</el-button>
+          <el-button type="primary" :loading="loading" @click="login">Login</el-button>
         </el-form-item>
       </el-form>
-      <el-alert v-if="loginError" type="error" :closable="false" :title="loginError" style="margin-top: 20px;"/>
+       <el-alert v-if="loginError" type="error" :closable="false" :title="loginError" style="margin-top: 20px;"/>
     </el-card>
   </div>
 </template>
 
 <script>
+import { ElMessage } from 'element-plus';
+
 export default {
   data() {
     return {
       loginForm: {
         username: "",
         password: "",
-        rememberMe: false,
+         rememberMe: false,
       },
       loginError: "",
+      loading: false,
     };
   },
   created() {
     // 尝试从 localStorage 中加载数据
-      if (localStorage.getItem("rememberMe") === "true") {
+    if (localStorage.getItem("rememberMe") === "true") {
       this.loginForm.username = localStorage.getItem("rememberedUsername") || "";
-       this.loginForm.password = localStorage.getItem("rememberedPassword") || "";
+      this.loginForm.password = localStorage.getItem("rememberedPassword") || "";
       this.loginForm.rememberMe = true;
     }
   },
   methods: {
     async login() {
+         this.loading = true;
+         this.loginError = '';
       try {
+         if(!this.loginForm.username || !this.loginForm.password) {
+            this.loginError = "Username and password cannot be empty.";
+             return;
+         }
           // 保存用户名和密码到 localStorage
           if (this.loginForm.rememberMe) {
             localStorage.setItem("rememberedUsername", this.loginForm.username);
             localStorage.setItem("rememberedPassword", this.loginForm.password);
-            localStorage.setItem("rememberMe", "true");
+             localStorage.setItem("rememberMe", "true");
           } else {
               localStorage.removeItem('rememberedUsername');
-             localStorage.removeItem('rememberedPassword');
+              localStorage.removeItem('rememberedPassword');
               localStorage.removeItem('rememberMe');
           }
-
         const response = await fetch("/api/login", {
           method: "POST",
           headers: {
@@ -77,17 +85,24 @@ export default {
             password: this.loginForm.password,
           }),
         });
-        if (!response.ok) {
-          const errorData = await response.json();
-          this.loginError = errorData.message || "Login failed";
-          return;
+       if (response.status === 401) {
+           const errorData = await response.json();
+          this.loginError = errorData.message || "Invalid username or password";
+            return;
         }
+         if (!response.ok) {
+            this.loginError = `Login failed, status code: ${response.status}`;
+             return;
+         }
         const data = await response.json();
-        localStorage.setItem("authToken", data.token);
+           localStorage.setItem("authToken", data.token);
         this.$router.push("/admin");
+        ElMessage.success("Login successfully!");
       } catch (error) {
         console.error("Error during login:", error);
-        this.loginError = "Login failed";
+         this.loginError = "Login failed";
+      }finally {
+         this.loading = false
       }
     },
   },
