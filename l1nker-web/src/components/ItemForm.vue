@@ -96,7 +96,7 @@
 </template>
 
 <script>
-import { ref, defineComponent, watch } from 'vue';
+import { ref, defineComponent, watch, onMounted } from 'vue';
 import draggable from 'vuedraggable';
 
 export default defineComponent({
@@ -118,12 +118,45 @@ export default defineComponent({
     },
   },
   setup(props) {
-    const buttons = ref(props.item.buttons ? [...props.item.buttons] : []);
+    const buttons = ref([]);
     const itemForm = ref(null);
 
-    watch(() => props.item.buttons, (newButtons) => {
-        buttons.value = newButtons ? [...newButtons] : [];
-    }, { deep: true });
+    onMounted(() => {
+      if (props.item.buttons) {
+        try {
+          buttons.value = JSON.parse(props.item.buttons);
+        } catch (e) {
+          console.error("Failed to parse buttons JSON:", e);
+          buttons.value = [];
+        }
+      }
+    });
+
+
+    watch(
+      () => props.item.buttons,
+      (newButtons) => {
+        if (newButtons) {
+          try {
+            buttons.value = JSON.parse(newButtons);
+          } catch (e) {
+            console.error("Failed to parse buttons JSON:", e);
+            buttons.value = [];
+          }
+        } else {
+          buttons.value = [];
+        }
+      },
+      { immediate: true }
+    );
+
+    watch(
+      buttons,
+      (newButtons) => {
+        props.item.buttons = JSON.stringify(newButtons);
+      },
+      { deep: true }
+    );
 
     const addButton = () => {
       buttons.value.push({ text: '', link: '', isDownload: false });
@@ -155,10 +188,6 @@ export default defineComponent({
       }
       return true;
     };
-
-    watch(buttons, (newButtons) => {
-        props.item.buttons = JSON.stringify(newButtons);
-    }, { deep: true });
 
     return {
       buttons,
