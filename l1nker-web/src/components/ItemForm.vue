@@ -10,14 +10,15 @@
     <el-form-item label="Profile Image">
       <el-image
         style="width: 100px; height: 100px; margin-right: 10px;"
-        :src="item.profileImageUrl ? `/images/${item.profileImageUrl}` : null"
+        :src="item.profileImageUrl"
         fit="cover"
       />
       <el-upload
         class="upload-demo"
-        :http-request="handleProfileImageUpload"
-        :show-file-list="false"
+        :action="uploadUrl"
+        :on-success="handleImageUploadSuccess"
         :before-upload="beforeUpload"
+        :show-file-list="false"
       >
         <el-button type="primary">
           <el-icon><Upload /></el-icon>Upload Image
@@ -112,14 +113,15 @@
     <el-form-item label="Favicon">
       <el-image
         style="width: 32px; height: 32px; margin-right: 10px;"
-        :src="item.faviconUrl ? `/images/${item.faviconUrl}` : null"
+        :src="item.faviconUrl"
         fit="cover"
       />
       <el-upload
         class="upload-demo"
-        :http-request="handleFaviconUpload"
-        :show-file-list="false"
+        :action="uploadUrl"
+        :on-success="handleFaviconUploadSuccess"
         :before-upload="beforeUpload"
+        :show-file-list="false"
       >
         <el-button type="primary">
           <el-icon><Upload /></el-icon>Upload Favicon
@@ -135,16 +137,12 @@
 <script>
 import { ref, defineComponent, watch } from 'vue';
 import draggable from 'vuedraggable';
-import { Rank, Upload, Delete, Plus } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
+import { Rank } from '@element-plus/icons-vue';
 
 export default defineComponent({
   components: {
     draggable,
     Rank,
-    Upload,
-    Delete,
-    Plus
   },
   props: {
     item: {
@@ -159,22 +157,12 @@ export default defineComponent({
       type: String,
       default: '/api/upload',
     },
-    baseUrl: {
-        type: String,
-        default: '',
-    },
-    jwtToken:{
-        type: String,
-        default: '',
-    }
   },
   setup(props, { emit }) {
     const localButtons = ref([...props.item.buttons || []]);
     const itemForm = ref(null);
-    const editingIndex = ref(-1);
-    const drag = ref(false);
-
-
+    const editingIndex = ref(-1); 
+    const drag = ref(false)
     watch(
       localButtons,
       (newValue) => {
@@ -193,11 +181,11 @@ export default defineComponent({
     };
 
     const removeButton = (index) => {
-      localButtons.value.splice(index, 1);
+       localButtons.value.splice(index, 1);
       if (editingIndex.value === index) {
-        editingIndex.value = -1;
+          editingIndex.value = -1
       } else if (editingIndex.value > index) {
-        editingIndex.value--;
+          editingIndex.value --
       }
     };
 
@@ -205,7 +193,7 @@ export default defineComponent({
       editingIndex.value = index;
     };
 
-    const cancelEditButton = () => {
+       const cancelEditButton = () => {
       editingIndex.value = -1;
     };
 
@@ -213,71 +201,26 @@ export default defineComponent({
       console.log('Drag completed', evt);
     };
 
-
-    const handleProfileImageUpload = async (options) => {
-      await uploadFile(options, 'profileImageUrl')
+    const handleImageUploadSuccess = (response) => {
+      props.item.profileImageUrl = response.imageUrl;
     };
 
-    const handleFaviconUpload = async (options) => {
-       await uploadFile(options, 'faviconUrl')
-    }
-     const uploadFile = async(options, property) => {
-        const { file } = options;
-        const formData = new FormData();
-        formData.append('file', file);
-        try {
-        const response = await fetch(`${props.baseUrl}${props.uploadUrl}`, {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${props.jwtToken}`
-             },
-            body: formData,
-          });
+    const handleFaviconUploadSuccess = (response) => {
+      props.item.faviconUrl = response.imageUrl;
+    };
 
-          const responseData = await response.json()
+    const beforeUpload = (file) => {
+      const isJPG = file.type === 'image/jpeg' || file.type === 'image/png';
+      const isLt2M = file.size / 1024 / 1024 < 2;
 
-          if (response.ok) {
-              props.item[property] = responseData.fileName;
-                ElMessage.success({
-                     message: 'Image Upload Success',
-                     type: 'success',
-                 })
-           }else {
-                ElMessage.error({
-                  message: `Image Upload Failed: ${responseData.message}`,
-                  type: 'error',
-                })
-              console.error(`Image Upload Failed: ${responseData.message}`);
-            }
-
-
-        } catch (error) {
-               ElMessage.error({
-                  message: 'Image Upload Failed: Network error',
-                  type: 'error',
-                })
-             console.error('Image Upload Failed:', error);
-        }
-     }
-
-     const beforeUpload = (file) => {
-        const isJPG = file.type === 'image/jpeg' || file.type === 'image/png';
-        const isLt2M = file.size / 1024 / 1024 < 2;
-
-        if (!isJPG) {
-            ElMessage.error({
-                  message: 'Upload image files only!',
-                   type: 'error',
-                })
-          return false;
-        }
-        if (!isLt2M) {
-            ElMessage.error({
-                  message: 'Image size must not exceed 2MB!',
-                   type: 'error',
-                })
-          return false;
-        }
+      if (!isJPG) {
+        console.error('Upload image files only!');
+        return false;
+      }
+      if (!isLt2M) {
+        console.error('Image size must not exceed 2MB!');
+        return false;
+      }
       return true;
     };
 
@@ -286,14 +229,14 @@ export default defineComponent({
       addButton,
       removeButton,
       handleDragChange,
+      handleImageUploadSuccess,
+      handleFaviconUploadSuccess,
       beforeUpload,
       itemForm,
       editingIndex,
       editButton,
       cancelEditButton,
       drag,
-      handleProfileImageUpload,
-      handleFaviconUpload,
     };
   },
 });

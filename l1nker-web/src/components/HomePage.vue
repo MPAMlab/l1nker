@@ -4,7 +4,7 @@
     <div v-else-if="error" class="error">Error: {{ error }}</div>
     <div v-else class="content">
       <div class="background-overlay"></div>
-      <img :src="profileImageUrl" class="background-image" @load="handleImageLoad" />
+      <img :src="profileImageUrl ? `/images/${profileImageUrl}` : null" class="background-image" @load="handleImageLoad" />
 
       <div class="profile-section">
         <img :src="profileImageUrl ? `/images/${profileImageUrl}` : null" class="profile-image" alt="Profile" />
