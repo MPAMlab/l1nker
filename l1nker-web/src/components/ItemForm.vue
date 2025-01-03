@@ -38,14 +38,21 @@
       </el-button>
       <div v-if="localButtons.length > 0" style="margin-top: 10px;">
         <draggable 
-          v-model="localButtons" 
-          tag="div" 
+          v-model="localButtons"
+          :component-data="{
+            tag: 'div',
+            type: 'transition-group',
+            name: !drag ? 'flip-list' : null
+          }"
+          item-key="id"
           handle=".drag-handle"
           :animation="200"
-          @change="handleDragChange"
+          @start="drag = true"
+          @end="drag = false"
         >
-          <template #item="{ element, index }">
+          <template #item="{element, index}">
             <div
+              :key="index"
               class="button-item"
               style="border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px;"
             >
@@ -107,13 +114,15 @@
 
 <script>
 import { ref, defineComponent, watch } from 'vue';
-import draggable from 'vuedraggable';
-import { Rank } from '@element-plus/icons-vue';
+import { VueDraggableNext } from 'vuedraggable';
+import { Rank, Plus, Delete } from '@element-plus/icons-vue';
 
 export default defineComponent({
   components: {
-    draggable,
+    draggable: VueDraggableNext,
     Rank,
+    Plus,
+    Delete
   },
   props: {
     item: {
@@ -129,17 +138,23 @@ export default defineComponent({
       default: '/api/upload',
     },
   },
-  setup(props, { emit }) {
-    const localButtons = ref([...props.item.buttons || []]);
+  setup(props) {
+    const localButtons = ref(props.item.buttons?.map((btn, index) => ({
+      ...btn,
+      id: `btn-${index}` // 添加唯一id
+    })) || []);
     const itemForm = ref(null);
+    const drag = ref(false);
 
     // 监听本地按钮数组的变化，同步到父组件
     watch(localButtons, (newValue) => {
-      props.item.buttons = [...newValue];
+      props.item.buttons = newValue.map(({ id, ...rest }) => rest); // 移除id后同步
     }, { deep: true });
 
     const addButton = () => {
+      const newId = `btn-${Date.now()}`;
       localButtons.value.push({ 
+        id: newId,
         text: '', 
         link: '', 
         isDownload: false,
@@ -149,11 +164,6 @@ export default defineComponent({
 
     const removeButton = (index) => {
       localButtons.value.splice(index, 1);
-    };
-
-    const handleDragChange = (evt) => {
-      // 可以在这里添加额外的拖拽完成后的逻辑
-      console.log('Drag completed', evt);
     };
 
     const handleImageUploadSuccess = (response) => {
@@ -181,9 +191,9 @@ export default defineComponent({
 
     return {
       localButtons,
+      drag,
       addButton,
       removeButton,
-      handleDragChange,
       handleImageUploadSuccess,
       handleFaviconUploadSuccess,
       beforeUpload,
@@ -199,5 +209,9 @@ export default defineComponent({
 }
 .drag-handle:hover {
   color: #409EFF;
+}
+
+.flip-list-move {
+  transition: transform 0.5s;
 }
 </style>
