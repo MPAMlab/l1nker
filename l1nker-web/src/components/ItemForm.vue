@@ -33,9 +33,6 @@
       <el-input v-model="item.subtitle" />
     </el-form-item>
     <el-form-item label="Buttons">
-      <el-button type="primary" @click="addButton">
-        <el-icon><Plus /></el-icon>Add Button
-      </el-button>
       <div v-if="localButtons.length > 0" style="margin-top: 10px;">
         <draggable
           v-model="localButtons"
@@ -86,23 +83,30 @@
                 <el-form-item label="Is Download">
                   <el-checkbox v-model="element.isDownload" />
                 </el-form-item>
-                  <el-button type="danger" size="small" @click="removeButton(index)">
-                    <el-icon><Delete /></el-icon>Delete
-                  </el-button>
-                 <el-button type="primary" size="small" @click="cancelEditButton">Cancel</el-button>
+                <el-button type="danger" size="small" @click="removeButton(index)">
+                  <el-icon><Delete /></el-icon>Delete
+                </el-button>
+                <el-button type="primary" size="small" @click="cancelEditButton">Cancel</el-button>
               </div>
               <div v-else>
-                  <p>Text: {{ element.text }}</p>
-                   <p>Link: {{ element.link }}</p>
-                   <p>Is Download: {{ element.isDownload }}</p>
+                <p>Text: {{ element.text }}</p>
+                <p>Link: {{ element.link }}</p>
+                <p>Is Download: {{ element.isDownload }}</p>
               </div>
             </div>
           </template>
         </draggable>
       </div>
-      <div v-else>
-        <el-empty description="No buttons available." />
-      </div>
+       <div v-else>
+          <el-empty description="No buttons available." />
+        </div>
+        <el-button
+          type="primary"
+          @click="addButton"
+          style="margin-top: 10px; display: block;"
+         >
+          <el-icon><Plus /></el-icon>Add Button
+        </el-button>
     </el-form-item>
     <el-form-item label="Button Color">
       <el-color-picker v-model="item.buttonColor" />
@@ -158,10 +162,8 @@ export default defineComponent({
   setup(props, { emit }) {
     const localButtons = ref([...props.item.buttons || []]);
     const itemForm = ref(null);
-    const editingIndex = ref(-1); // -1表示没有按钮在编辑
+    const editingIndex = ref(-1); 
     const drag = ref(false)
-
-    // 监听本地按钮数组的变化，同步到父组件
     watch(
       localButtons,
       (newValue) => {
@@ -180,11 +182,11 @@ export default defineComponent({
     };
 
     const removeButton = (index) => {
-      localButtons.value.splice(index, 1);
-       if (editingIndex.value === index) {
+       localButtons.value.splice(index, 1);
+      if (editingIndex.value === index) {
           editingIndex.value = -1
       } else if (editingIndex.value > index) {
-        editingIndex.value --
+          editingIndex.value --
       }
     };
 
@@ -192,12 +194,11 @@ export default defineComponent({
       editingIndex.value = index;
     };
 
-      const cancelEditButton = () => {
+       const cancelEditButton = () => {
       editingIndex.value = -1;
     };
 
     const handleDragChange = (evt) => {
-      // 可以在这里添加额外的拖拽完成后的逻辑
       console.log('Drag completed', evt);
     };
 
@@ -236,7 +237,7 @@ export default defineComponent({
       editingIndex,
       editButton,
       cancelEditButton,
-        drag
+      drag,
     };
   },
 });
