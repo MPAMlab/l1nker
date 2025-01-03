@@ -1,5 +1,4 @@
 import { SignJWT, jwtVerify } from 'jose';
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
