@@ -97,17 +97,16 @@
           </template>
         </draggable>
       </div>
-       <div v-else>
-          <el-empty description="No buttons available." />
-        </div>
-        <el-button
-          type="primary"
-          @click="addButton"
-          style="margin-top: 10px; display: block;"
-         >
-          <el-icon><Plus /></el-icon>Add Button
-        </el-button>
+      <div v-else>
+        <el-empty description="No buttons available." />
+      </div>
     </el-form-item>
+    <div style="margin-left: 150px; margin-bottom: 20px;">
+      <el-button type="primary" @click="addButton">
+        <el-icon><Plus /></el-icon>Add Button
+      </el-button>
+    </div>
+
     <el-form-item label="Button Color">
       <el-color-picker v-model="item.buttonColor" />
     </el-form-item>
