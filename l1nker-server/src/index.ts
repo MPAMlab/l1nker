@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -21,6 +22,9 @@ export default {
 	if (pathname === '/api/upload' && request.method === 'POST') {
         return handleUpload(request, env);
       }
+    if (pathname.startsWith('/images/')) {
+        return handleImageRequest(request, env);
+    }
     // For all other request, let cloudflare handle it
     return fetch(request);
   },
@@ -74,35 +78,95 @@ async function handleApiData(key: string, env: Env): Promise<Response> {
         });
     }
 }
+async function handleImageRequest(request: Request, env: Env): Promise<Response> {
 
-async function handleUpload(request: Request, env: Env): Promise<Response> {
-	try{
-	  const formData = await request.formData();
-		const file = formData.get('file') as File | null;
-		if(!file){
-			  return new Response(JSON.stringify({ message: "No file uploaded" }), {
-				  status: 400,
-				  headers: { 'Content-Type': 'application/json' },
-			  });
-		}
-		const fileBuffer = await file.arrayBuffer();
-		 const fileName = `${crypto.randomUUID()}-${file.name}`;
-		  await env.MY_R2_BUCKET.put(fileName, fileBuffer);
+ try {
+     // 2. 获取图片路径
+     const url = new URL(request.url);
+     const imageName = url.pathname.substring('/images/'.length);
 
-		const imageUrl = `https://${env.MY_R2_BUCKET}.r2.dev/${fileName}`;
-		return new Response(JSON.stringify({ imageUrl }), {
-			headers: {
-				'Content-Type': 'application/json',
-			},
-		});
+     // 3. 使用 R2 API 获取图片
+     const object = await env.MY_R2_BUCKET.get(imageName);
 
-	}catch(e){
-	   return new Response(JSON.stringify({message: "Failed to upload file"}), {
-		   status:500,
-			headers: { 'Content-Type': 'application/json' },
-	   })
-	}
+     // 4. 返回图片
+     if (object === null) {
+        return new Response(JSON.stringify({ message: "Image not found" }), {
+             status: 404,
+             headers: { 'Content-Type': 'application/json' },
+          });
+     }
+     const headers = new Headers();
+     object.writeHttpMetadata(headers);
+      headers.set('Cache-Control', 'public, max-age=31536000'); // 缓存一年
+    return new Response(object.body, {
+        headers,
+     });
+
+ } catch (e) {
+     console.error("Error fetching image:", e);
+       return new Response(JSON.stringify({ message: "Failed to fetch image", error: e.message }), {
+             status: 500,
+             headers: { 'Content-Type': 'application/json' },
+         });
+ }
 }
+async function handleUpload(request: Request, env: Env): Promise<Response> {
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return new Response(JSON.stringify({ message: 'Unauthorized' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+    const token = authHeader.substring(7);
+    try {
+        await jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET_KEY));
+    } catch (error) {
+        return new Response(JSON.stringify({ message: 'Unauthorized' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+
+    try {
+        // 2. 获取 FormData 和文件 (保持不变)
+        const formData = await request.formData();
+        const file = formData.get('file') as File | null;
+        if (!file) {
+            return new Response(JSON.stringify({ message: "No file uploaded" }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+         if (file.size > 5 * 1024 * 1024) { // 5MB = 5 * 1024 * 1024 bytes
+            return new Response(JSON.stringify({ message: "File size exceeds 5MB limit" }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+        const fileBuffer = await file.arrayBuffer();
+        const fileName = `${crypto.randomUUID()}-${file.name}`;
+
+        await env.MY_R2_BUCKET.put(fileName, fileBuffer,{
+           httpMetadata: {
+              contentType: file.type,
+           },
+        });
+        return new Response(JSON.stringify({ message: "File uploaded successfully" }), {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+    } catch (e) {
+         console.error("Error uploading file:", e); // 记录错误信息，方便调试
+        return new Response(JSON.stringify({ message: "Failed to upload file", error: e.message }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+}
+
 async function handleLogin(request: Request, env: Env): Promise<Response> {
     try {
         const { username, password } = await request.json() as { username: string; password: string };
