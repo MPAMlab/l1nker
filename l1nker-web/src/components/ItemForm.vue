@@ -36,30 +36,42 @@
       <el-button type="primary" @click="addButton">
         <el-icon><Plus /></el-icon>Add Button
       </el-button>
-      <div v-if="buttons && buttons.length > 0" style="margin-top: 10px;">
-        <draggable v-model="buttons" tag="div" handle=".button-item">
-          <div
-            v-for="(button, index) in buttons"
-            :key="index"
-            style="border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px; cursor: move;"
-            class="button-item"
-          >
-            <div style="margin-bottom: 10px;">
-              <span style="font-weight: bold;">Button #{{ index + 1 }}:</span>
+      <div v-if="localButtons.length > 0" style="margin-top: 10px;">
+        <draggable 
+          v-model="localButtons" 
+          tag="div" 
+          handle=".drag-handle"
+          :animation="200"
+          @change="handleDragChange"
+        >
+          <template #item="{ element, index }">
+            <div
+              class="button-item"
+              style="border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px;"
+            >
+              <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: bold;">Button #{{ index + 1 }}</span>
+                <el-icon 
+                  class="drag-handle" 
+                  style="cursor: move; padding: 4px;"
+                >
+                  <DragIcon />
+                </el-icon>
+              </div>
+              <el-form-item label="Text">
+                <el-input v-model="element.text" />
+              </el-form-item>
+              <el-form-item label="Link">
+                <el-input v-model="element.link" />
+              </el-form-item>
+              <el-form-item label="Is Download">
+                <el-checkbox v-model="element.isDownload" />
+              </el-form-item>
+              <el-button type="danger" size="small" @click="removeButton(index)">
+                <el-icon><Delete /></el-icon>Delete
+              </el-button>
             </div>
-            <el-form-item label="Text">
-              <el-input v-model="button.text" />
-            </el-form-item>
-            <el-form-item label="Link">
-              <el-input v-model="button.link" />
-            </el-form-item>
-            <el-form-item label="Is Download">
-              <el-checkbox v-model="button.isDownload" />
-            </el-form-item>
-            <el-button type="danger" size="small" @click="removeButton(index)">
-              <el-icon><Delete /></el-icon>Delete
-            </el-button>
-          </div>
+          </template>
         </draggable>
       </div>
       <div v-else>
@@ -94,10 +106,15 @@
 </template>
 
 <script>
-import { ref, defineComponent } from 'vue';
+import { ref, defineComponent, watch } from 'vue';
 import draggable from 'vuedraggable';
+import { DragIcon } from '@element-plus/icons-vue';
 
 export default defineComponent({
+  components: {
+    draggable,
+    DragIcon,
+  },
   props: {
     item: {
       type: Object,
@@ -112,16 +129,31 @@ export default defineComponent({
       default: '/api/upload',
     },
   },
-  setup(props) {
-    const buttons = ref(props.item.buttons || []);
+  setup(props, { emit }) {
+    const localButtons = ref([...props.item.buttons || []]);
     const itemForm = ref(null);
 
+    // 监听本地按钮数组的变化，同步到父组件
+    watch(localButtons, (newValue) => {
+      props.item.buttons = [...newValue];
+    }, { deep: true });
+
     const addButton = () => {
-      buttons.value.push({ text: '', link: '', isDownload: false });
+      localButtons.value.push({ 
+        text: '', 
+        link: '', 
+        isDownload: false,
+        backgroundColor: props.item.buttonColor || '#3498db'
+      });
     };
 
     const removeButton = (index) => {
-      buttons.value.splice(index, 1);
+      localButtons.value.splice(index, 1);
+    };
+
+    const handleDragChange = (evt) => {
+      // 可以在这里添加额外的拖拽完成后的逻辑
+      console.log('Drag completed', evt);
     };
 
     const handleImageUploadSuccess = (response) => {
@@ -148,9 +180,10 @@ export default defineComponent({
     };
 
     return {
-      buttons,
+      localButtons,
       addButton,
       removeButton,
+      handleDragChange,
       handleImageUploadSuccess,
       handleFaviconUploadSuccess,
       beforeUpload,
@@ -159,3 +192,12 @@ export default defineComponent({
   },
 });
 </script>
+
+<style scoped>
+.drag-handle {
+  color: #909399;
+}
+.drag-handle:hover {
+  color: #409EFF;
+}
+</style>
