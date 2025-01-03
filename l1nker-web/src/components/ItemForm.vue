@@ -37,27 +37,32 @@
         <el-icon><Plus /></el-icon>Add Button
       </el-button>
       <div v-if="buttons && buttons.length > 0" style="margin-top: 10px;">
-        <div
-          v-for="(button, index) in buttons"
-          :key="index"
-          style="border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px;"
-        >
-          <div style="margin-bottom: 10px;">
-            <span style="font-weight: bold;">Button #{{ index + 1 }}:</span>
+        <draggable v-model="buttons" tag="div"  handle=".drag-handle" >
+          <div
+            v-for="(button, index) in buttons"
+            :key="index"
+            style="border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px; position: relative;"
+          >
+            <div style="margin-bottom: 10px;">
+              <span style="font-weight: bold;">Button #{{ index + 1 }}:</span>
+              <span class="drag-handle" style="position: absolute; top: 5px; right: 5px; cursor: move;">
+                <el-icon><Rank /></el-icon>
+              </span>
+            </div>
+            <el-form-item label="Text">
+              <el-input v-model="button.text" />
+            </el-form-item>
+            <el-form-item label="Link">
+              <el-input v-model="button.link" />
+            </el-form-item>
+            <el-form-item label="Is Download">
+              <el-checkbox v-model="button.isDownload" />
+            </el-form-item>
+            <el-button type="danger" size="small" @click="removeButton(index)">
+              <el-icon><Delete /></el-icon>Delete
+            </el-button>
           </div>
-          <el-form-item label="Text">
-            <el-input v-model="button.text" />
-          </el-form-item>
-          <el-form-item label="Link">
-            <el-input v-model="button.link" />
-          </el-form-item>
-          <el-form-item label="Is Download">
-            <el-checkbox v-model="button.isDownload" />
-          </el-form-item>
-          <el-button type="danger" size="small" @click="removeButton(index)">
-            <el-icon><Delete /></el-icon>Delete
-          </el-button>
-        </div>
+        </draggable>
       </div>
       <div v-else>
         <el-empty description="No buttons available." />
@@ -91,9 +96,13 @@
 </template>
 
 <script>
-import { ref, defineComponent } from 'vue';
+import { ref, defineComponent, watch } from 'vue';
+import draggable from 'vuedraggable';
 
 export default defineComponent({
+  components: {
+    draggable
+  },
   props: {
     item: {
       type: Object,
@@ -109,8 +118,12 @@ export default defineComponent({
     },
   },
   setup(props) {
-    const buttons = ref(props.item.buttons || []);
+    const buttons = ref(props.item.buttons ? [...props.item.buttons] : []);
     const itemForm = ref(null);
+
+    watch(() => props.item.buttons, (newButtons) => {
+        buttons.value = newButtons ? [...newButtons] : [];
+    }, { deep: true });
 
     const addButton = () => {
       buttons.value.push({ text: '', link: '', isDownload: false });
@@ -143,6 +156,10 @@ export default defineComponent({
       return true;
     };
 
+    watch(buttons, (newButtons) => {
+        props.item.buttons = JSON.stringify(newButtons);
+    }, { deep: true });
+
     return {
       buttons,
       addButton,
@@ -155,3 +172,8 @@ export default defineComponent({
   },
 });
 </script>
+<style scoped>
+.drag-handle {
+  cursor: move;
+}
+</style>

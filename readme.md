@@ -4,13 +4,40 @@ L1nker is a one-page promotional page for MPAM Laboratory internal use, but also
 
 ## Introduction
 
-L1nker is a lightweight web application that allows you to quickly create a personal link page, similar to Linktree or other profile-style landing pages. It is designed to be easy to configure and deploy, making it ideal for showcasing your social media profiles, projects, or other important links.
+L1nker is a lightweight web application that allows you to quickly create a personal link page, similar to Link\*\*ee, Link\*\*re or other profile-style landing pages. It is designed to be easy to configure and deploy, making it ideal for showcasing your social media profiles, projects, or other important links.
 
 ## Features
 
 - **Customizable Links:** Add and customize links with text, URLs, background colors, and icons.
 - **Dynamic Data Loading:** Fetch page data (profile image, title, subtitle, links) from an API.
 - **Responsive Design:** Works well on various screen sizes.
+
+## To-do
+
+### before version 1.0
+
+- Rearrangeable list
+- User Management
+- Ability to use 2FA / SSO
+- Homepage for sp.srt.pub, 404 (http code) pages, redirectKey not in database will redirect to Homepage 
+- More components: Artist page or card / Podcast page / Event page
+- More customization
+- Social buttons
+
+### version > 1.0 roadmap:
+
+- (probably 1.5 or not) Pre-release countdown
+- (probably 1.5) Video support(Thumbnail & Embed youtube or bilibili or nicovideo)
+- (probably 1.5) Custom background and gif support
+- (probably 2.0) Click statistic analyze & Export
+- (probably 2.0) Reward program & Coupon code
+- (probably 2.5) Workspace and Team support
+- (not planned) Merch embed
+- (not planned) Integration / API
+- (not planned) Ads
+- (not planned) Territory management
+- (not planned) Pop-up campaign
+
 
 ## Technologies Used
 
@@ -62,7 +89,7 @@ L1nker is a lightweight web application that allows you to quickly create a pers
 
 1. Clone this repo
 2. Modify the wrangler.toml to your actual binding
-3. Deploy the contens of the `\l1nker-server` folder to your worker 
+3. Deploy the contents of the `\l1nker-server` folder to your worker 
 
 ## Configuration
 
@@ -103,6 +130,10 @@ L1nker is a lightweight web application that allows you to quickly create a pers
 - **ItemForm.vue:**
 - **LoginPage.vue**
 
+## Future plan of this project
+
+This project is only for internal projects' showcase, and we are happy to provide our build of this tool to people we're associated with, this tool will not becoming a commercial project in the forseeable future(as there're some commercial tools can do better jobs), nor becoming a SAAS service. If you need, you can build your own version upon this based on GNU license.
+
 ## License
 
-[MIT](LICENSE)
+This repository is using [GNU GPLv3 License](LICENSE), this permits the ``commercial use, distribution, modification, patent use and private use`` of this repository, with condition of ``disclose source, license and copyright notice, same license, state changes``. This repository don't cover for ``liability and warranty``. More legal information, please checkout the [LICENSE](LICENSE).
