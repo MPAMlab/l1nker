@@ -1,9 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import HomePage from './components/HomePage.vue';
-import AdminPage from './components/AdminPage.vue';
-import LoginPage from './components/LoginPage.vue';
-import AdminItemEdit from './components/AdminItemEdit.vue';
-import AdminUserManagement from './components/AdminUserManagement.vue';
+import HomePage from './components/FrontEnd/HomePage.vue';
+import AdminPage from './components/Admin/AdminPage.vue';
+import LoginPage from './components/Admin/LoginPage.vue';
+import AdminItemEdit from './components/Admin/AdminComponents/ItemManagement.vue';
+import AdminUserManagement from './components/Admin/AdminComponents/UserManagement.vue';
 
 const routes = [
     { path: '/', component: HomePage },

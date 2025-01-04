@@ -34,7 +34,7 @@
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
-import LinkButton from './LinkButton.vue';
+import LinkButton from './FrontComponents/LinkButton.vue';
 import Color from 'color';
 
 interface Button {

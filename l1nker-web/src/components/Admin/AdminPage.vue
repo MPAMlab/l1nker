@@ -47,7 +47,7 @@
 
 <script>
 import { ref, onMounted } from 'vue';
-import ItemForm from './ItemForm.vue';
+import ItemForm from './AdminComponents/ButtonCardEdit.vue';
 import { ElMessage } from 'element-plus';
 import _ from 'lodash';
 
@@ -88,7 +88,6 @@ export default {
         loading.value = false;
       }
     };
-
 
     const handleRowClick = (row) => {
       selectedItem.value = { ...row, buttons: [...JSON.parse(row.buttons || '[]')] }; //浅拷贝按钮数组
