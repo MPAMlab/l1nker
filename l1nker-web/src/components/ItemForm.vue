@@ -135,7 +135,7 @@
 </template>
 
 <script>
-import { ref, defineComponent,  onMounted, onBeforeUpdate } from 'vue';
+import { ref, defineComponent,  onMounted, watchEffect } from 'vue';
 import draggable from 'vuedraggable';
 import { Rank } from '@element-plus/icons-vue';
 
@@ -164,13 +164,9 @@ export default defineComponent({
     const editingIndex = ref(-1);
     const drag = ref(false);
 
-    onMounted(() => {
-      localButtons.value = [...props.item.buttons];
-    });
-
-      onBeforeUpdate(() => {
-      localButtons.value = [...props.item.buttons]
-    })
+    watchEffect(() => {
+        localButtons.value = [...props.item.buttons];
+      });
 
 
     const addButton = () => {
@@ -226,7 +222,6 @@ export default defineComponent({
       return true;
     };
 
-
     return {
       localButtons,
       addButton,
@@ -244,6 +239,7 @@ export default defineComponent({
   },
 });
 </script>
+
 
 <style scoped>
 .drag-handle {

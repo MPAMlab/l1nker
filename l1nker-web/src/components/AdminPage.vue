@@ -81,7 +81,7 @@ export default {
           throw new Error(errorData.message);
         }
         const dataJson = await response.json();
-        data.value = dataJson.map((item) => ({ ...item, newRedirectKey: item.redirectKey, buttons: JSON.parse(item.buttons || '[]') }));
+          data.value = dataJson.map((item) => ({ ...item, newRedirectKey: item.redirectKey, buttons: JSON.parse(item.buttons || '[]') }));
       } catch (err) {
           ElMessage.error("Error fetching data: " + err.message)
       } finally {
@@ -89,10 +89,12 @@ export default {
       }
     };
 
+
     const handleRowClick = (row) => {
-      selectedItem.value = { ...row, buttons: [...row.buttons] }; //浅拷贝按钮数组
+      selectedItem.value = { ...row, buttons: [...JSON.parse(row.buttons || '[]')] }; //浅拷贝按钮数组
       showEditModal.value = true;
     };
+
 
     const closeEditModal = () => {
       showEditModal.value = false;
@@ -115,13 +117,17 @@ export default {
 
     const updateItem = async () => {
       try {
+         const updatedItem = {
+            ...selectedItem.value,
+             buttons: JSON.stringify(selectedItem.value.buttons)
+         }
         const response = await fetch(`/api/admin/data/${selectedItem.value.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${localStorage.getItem('authToken')}`,
           },
-          body: JSON.stringify(selectedItem.value),
+          body: JSON.stringify(updatedItem),
         });
         if (!response.ok) {
           const errorData = await response.json();
@@ -160,13 +166,17 @@ export default {
 
     const createItem = async () => {
       try {
+        const newItemWithButtons = {
+          ...newItem.value,
+            buttons: JSON.stringify(newItem.value.buttons),
+        };
         const response = await fetch('/api/admin/data', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${localStorage.getItem('authToken')}`,
           },
-          body: JSON.stringify(newItem.value),
+          body: JSON.stringify(newItemWithButtons),
         });
 
         if (!response.ok) {
