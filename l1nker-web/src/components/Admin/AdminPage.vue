@@ -65,7 +65,6 @@ export default {
     const newItem = ref({ buttons: [] });
     const uploadUrl = ref('/api/upload'); // Make uploadUrl reactive
 
-
     const fetchData = async () => {
       loading.value = true;
       error.value = null;
@@ -81,7 +80,11 @@ export default {
           throw new Error(errorData.message);
         }
         const dataJson = await response.json();
-          data.value = dataJson.map((item) => ({ ...item, newRedirectKey: item.redirectKey, buttons: JSON.parse(item.buttons || '[]') }));
+          data.value = dataJson.map((item) => ({
+            ...item,
+            newRedirectKey: item.redirectKey,
+            buttons: item.buttons && typeof item.buttons === 'string' ? JSON.parse(item.buttons) : [],
+          }));
       } catch (err) {
           ElMessage.error("Error fetching data: " + err.message)
       } finally {
