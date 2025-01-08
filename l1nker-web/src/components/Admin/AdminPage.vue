@@ -106,7 +106,14 @@ export default {
     };
 
     const handleRowClick = (row) => {
-      selectedItem.value = { ...row, buttons: [...JSON.parse(row.buttons || '[]')] }; //浅拷贝按钮数组
+      let parsedButtons;
+      try {
+        parsedButtons = JSON.parse(row.buttons || '[]');
+      } catch (e) {
+        console.error("Failed to parse buttons for row:", row, e);
+        parsedButtons = [];
+      }
+      selectedItem.value = { ...row, buttons: [...parsedButtons] };
       showEditModal.value = true;
     };
 
