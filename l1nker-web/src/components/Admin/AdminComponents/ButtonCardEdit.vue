@@ -165,7 +165,11 @@ export default defineComponent({
     const drag = ref(false);
 
     watchEffect(() => {
-        localButtons.value = [...props.item.buttons];
+        if (props.item && props.item.buttons) {
+            localButtons.value = [...props.item.buttons];
+        } else {
+            localButtons.value = [];
+        }
       });
 
 
