@@ -106,14 +106,7 @@ export default {
     };
 
     const handleRowClick = (row) => {
-      let parsedButtons;
-      try {
-        parsedButtons = JSON.parse(row.buttons || '[]');
-      } catch (e) {
-        console.error("Failed to parse buttons for row:", row, e);
-        parsedButtons = [];
-      }
-      selectedItem.value = { ...row, buttons: [...parsedButtons] };
+      selectedItem.value = { ...row, buttons: [...row.buttons] };
       showEditModal.value = true;
     };
 
