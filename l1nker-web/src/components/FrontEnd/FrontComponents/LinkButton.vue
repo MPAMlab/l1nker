@@ -2,17 +2,14 @@
   <a
     :href="link"
     class="link-button"
-    :class="{ 'is-download': isDownload }"
     :style="{ backgroundColor }"
     target="_blank"
     rel="noopener noreferrer"
   >
     <div class="button-content">
-       <span class="service-name">{{ text }}</span>
+      <span class="service-name">{{ text }}</span>
       <div class="action-badge">
-        <font-awesome-icon v-if="!isDownload" :icon="['fas', 'play']" style="margin-right: 8px" />
-        <font-awesome-icon v-if="isDownload" :icon="['far', 'circle-down']" style="margin-right: 8px" />
-        {{ isDownload ? 'Download' : 'Play' }}
+        Visit
       </div>
     </div>
   </a>
@@ -24,7 +21,6 @@ export default {
     text: { type: String, required: true },
     link: { type: String, required: true },
     backgroundColor: { type: String, required: true },
-    isDownload: { type: Boolean, default: false }
   },
 };
 </script>
@@ -62,9 +58,5 @@ export default {
   padding: 10px 20px;
   border-radius: 4px;
   font-size: 14px;
-}
-
-.is-download .action-badge {
-  background: rgba(255, 255, 255, 0.2);
 }
 </style>

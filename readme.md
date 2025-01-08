@@ -20,7 +20,7 @@ L1nker is a lightweight web application that allows you to quickly create a pers
 - User Management
 - Ability to use 2FA / SSO
 - Homepage for sp.srt.pub, 404 (http code) pages, redirectKey not in database will redirect to Homepage 
-- More components: Artist page or card / Podcast page / Event page
+- More components: Artist page or card / Podcast page / Event page / Music page and Album page
 - More customization
 - Social buttons
 

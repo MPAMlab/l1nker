@@ -5,7 +5,8 @@
         <el-button type="danger" @click="logout">Logout</el-button>
       </template>
     </el-page-header>
-    <el-alert v-if="error" :type="error.type || 'error'" :closable="false" :title="error.message || 'An error occurred'" />
+    <el-alert v-if="error" :type="error.type || 'error'" :closable="false"
+      :title="error.message || 'An error occurred'" />
     <div v-if="loading">
       <el-empty description="Loading data..." />
     </div>
@@ -20,16 +21,6 @@
           </template>
         </el-table-column>
       </el-table>
-
-      <el-dialog v-model="showEditModal" :title="`Edit ${selectedItem.redirectKey}`" width="80%" @close="closeEditModal">
-        <item-form :item="selectedItem" :isEdit="true" :uploadUrl="uploadUrl" @update:item="updateSelectedItem" />
-        <template #footer>
-          <el-button @click="closeEditModal">Cancel</el-button>
-          <el-button type="primary" @click="updateItem">Update</el-button>
-          <el-button type="danger" @click="deleteItem">Delete</el-button>
-          <el-button type="warning" @click="updateRedirectKey">Update RedirectKey</el-button>
-        </template>
-      </el-dialog>
 
       <el-dialog v-model="showCreateModal" title="Create New Item" width="80%" @close="closeCreateModal">
         <item-form :item="newItem" :isEdit="false" :uploadUrl="uploadUrl" @update:item="updateNewItem" />
@@ -49,7 +40,7 @@
 import { ref, onMounted } from 'vue';
 import ItemForm from './AdminComponents/ButtonCardEdit.vue';
 import { ElMessage } from 'element-plus';
-import _ from 'lodash';
+import { useRouter } from 'vue-router';
 
 export default {
   components: {
@@ -59,12 +50,10 @@ export default {
     const data = ref(null);
     const error = ref(null);
     const loading = ref(true);
-    const showEditModal = ref(false);
     const showCreateModal = ref(false);
-    const selectedItem = ref({});
     const newItem = ref({ buttons: [] });
     const uploadUrl = ref('/api/upload'); // Make uploadUrl reactive
-
+    const router = useRouter();
 
     const fetchData = async () => {
       loading.value = true;
@@ -81,24 +70,18 @@ export default {
           throw new Error(errorData.message);
         }
         const dataJson = await response.json();
-          data.value = dataJson.map((item) => ({ ...item, newRedirectKey: item.redirectKey, buttons: JSON.parse(item.buttons || '[]') }));
+          data.value = dataJson.map((item) => ({ ...item, newRedirectKey: item.redirectKey, buttons:item.buttons, ...item.profile }));
       } catch (err) {
-          ElMessage.error("Error fetching data: " + err.message)
+        ElMessage.error("Error fetching data: " + err.message)
       } finally {
         loading.value = false;
       }
     };
 
     const handleRowClick = (row) => {
-      selectedItem.value = { ...row, buttons: [...JSON.parse(row.buttons || '[]')] }; //浅拷贝按钮数组
-      showEditModal.value = true;
+      router.push(`/admin/edit/${row.id}`);
     };
 
-
-    const closeEditModal = () => {
-      showEditModal.value = false;
-      selectedItem.value = {};
-    };
 
     const closeCreateModal = () => {
       showCreateModal.value = false;
@@ -106,60 +89,8 @@ export default {
     };
 
 
-    const updateSelectedItem = (updatedItem) => {
-      selectedItem.value = updatedItem;
-    };
-
     const updateNewItem = (updatedItem) => {
-        newItem.value = updatedItem;
-    };
-
-    const updateItem = async () => {
-      try {
-         const updatedItem = {
-            ...selectedItem.value,
-             buttons: JSON.stringify(selectedItem.value.buttons)
-         }
-        const response = await fetch(`/api/admin/data/${selectedItem.value.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-          },
-          body: JSON.stringify(updatedItem),
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          error.value = { type: 'error', message: errorData.message || 'Failed to update item' };
-          return;
-        }
-        await fetchData();
-        closeEditModal();
-        ElMessage.success('Item updated successfully!');
-      } catch (err) {
-          ElMessage.error('Error updating item: ' + err.message);
-      }
-    };
-
-    const deleteItem = async () => {
-      try {
-        const response = await fetch(`/api/admin/data/${selectedItem.value.id}`, {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-          },
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          error.value = { type: 'error', message: errorData.message || 'Failed to delete item' };
-          return;
-        }
-        await fetchData();
-        closeEditModal();
-        ElMessage.success('Item deleted successfully!');
-      } catch (err) {
-          ElMessage.error('Error deleting item: ' + err.message);
-      }
+      newItem.value = updatedItem;
     };
 
 
@@ -187,30 +118,7 @@ export default {
         closeCreateModal();
         ElMessage.success('Item created successfully!');
       } catch (err) {
-          ElMessage.error('Error creating item: ' + err.message);
-      }
-    };
-
-    const updateRedirectKey = async () => {
-      try {
-        const response = await fetch(`/api/admin/data/update-redirect-key/${selectedItem.value.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-          },
-          body: JSON.stringify({ newRedirectKey: selectedItem.value.newRedirectKey }),
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          error.value = { type: 'error', message: errorData.message || 'Failed to update redirect key' };
-          return;
-        }
-        await fetchData();
-        closeEditModal();
-        ElMessage.success('Redirect key updated successfully!');
-      } catch (err) {
-          ElMessage.error('Error updating redirect key: ' + err.message);
+        ElMessage.error('Error creating item: ' + err.message);
       }
     };
 
@@ -226,20 +134,13 @@ export default {
       data,
       error,
       loading,
-      showEditModal,
       showCreateModal,
-      selectedItem,
       newItem,
       handleRowClick,
-      closeEditModal,
       closeCreateModal,
-      updateItem,
-      deleteItem,
       createItem,
-      updateRedirectKey,
       logout,
-      updateSelectedItem,
-      updateNewItem,
+       updateNewItem,
       uploadUrl,
     };
   },
