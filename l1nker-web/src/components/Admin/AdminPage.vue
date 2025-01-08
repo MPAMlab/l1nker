@@ -80,11 +80,24 @@ export default {
           throw new Error(errorData.message);
         }
         const dataJson = await response.json();
-          data.value = dataJson.map((item) => ({
-            ...item,
-            newRedirectKey: item.redirectKey,
-            buttons: item.buttons && typeof item.buttons === 'string' ? JSON.parse(item.buttons) : [],
-          }));
+          data.value = dataJson.map((item) => {
+            let parsedButtons;
+            if (item.buttons && typeof item.buttons === 'string') {
+              try {
+                parsedButtons = JSON.parse(item.buttons);
+              } catch (e) {
+                console.error("Failed to parse buttons for item:", item, e);
+                parsedButtons = [];
+              }
+            } else {
+              parsedButtons = [];
+            }
+            return {
+              ...item,
+              newRedirectKey: item.redirectKey,
+              buttons: parsedButtons,
+            };
+          });
       } catch (err) {
           ElMessage.error("Error fetching data: " + err.message)
       } finally {
