@@ -25,6 +25,12 @@ const routes = [
             },
         ],
     },
+    {
+        path: '/admin/item/:id', // 新增路由
+        name: 'AdminItemManagement',
+        component: AdminItemEdit,
+        meta: { requiresAuth: true },
+    },
     { path: '/login', component: LoginPage },
     { path: '/:redirectKey', component: HomePage },
 ];
