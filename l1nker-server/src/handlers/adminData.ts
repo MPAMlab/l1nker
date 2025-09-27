@@ -50,11 +50,41 @@ export async function handleAdminData(request: Request, pathname: string, env: E
     });
   }
 
-  // 如果验证通过，则继续处理请求
+    // 如果验证通过，则继续处理请求
   // 数据库查询和更新代码
   try {
     if (request.method === 'GET') {
       let query;
+      if (pathname.includes('/api/admin/data/')) {
+        const id = pathname.split('/').pop() || '';
+        const existingItem = await env?.l1nker_db
+          ?.prepare('SELECT * FROM landing_page WHERE id = ?')
+          .bind(id)
+          .first();
+        if (!existingItem) {
+          return new Response(JSON.stringify({ message: `No item found with id: ${id}` }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        //确保只有管理员或者有权限的用户才能获取
+        if (
+          (request as AuthorizedRequest).managedProjects !== '*' &&
+          !((request as AuthorizedRequest).managedProjects as Array<{ redirectKey: string }>).some(
+            (item) => item.redirectKey === existingItem.redirectKey,
+          )
+        ) {
+          return new Response(JSON.stringify({ message: 'Unauthorized' }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return new Response(JSON.stringify(existingItem), {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      }
       if ((request as AuthorizedRequest).managedProjects === '*') {
         query = `SELECT * FROM landing_page`;
       } else {
@@ -258,15 +288,11 @@ export async function handleAdminData(request: Request, pathname: string, env: E
         },
       });
     }
-    return new Response(JSON.stringify({ message: 'Method Not Allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
   } catch (error) {
-    return new Response(JSON.stringify({ message: error.message }), {
+    console.error('Error in adminData:', error);
+    return new Response(JSON.stringify({ message: 'Internal server error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
   }
 }
-

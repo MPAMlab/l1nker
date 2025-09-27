@@ -1,0 +1,45 @@
+
+[
+    {
+      "component_type": "LinkProfile",
+      "component_data": {
+        "ArtistName": "Fds",
+        "Verified": true,
+        "Description": "Fds is a producer from MPAM Laboratory",
+        "links": [
+          {
+            "text": "Homepage of Fds",
+            "link": "https://fds.srt.pub"
+          },
+          {
+            "text": "Other URL",
+            "link": "https://mpam-lab.xyz/others"
+          }
+        ]
+      }
+    },
+    {
+      "component_type": "LinkPodcast",
+      "component_data": {
+        "podcastname": "FDStudio Podcast",
+        "genre": "Technology",
+        "episodes": [
+          {
+            "id": "1",
+            "episodename": "EP1: First episode of FDStudio Podcast",
+            "link": "https://podcast-example.com/fdstudio/ep-1"
+          },
+          {
+            "id": "2",
+            "episodename": "EP2: Recent Tech News",
+            "link": "https://podcast-example.com/fdstudio/ep-2"
+          },
+          {
+            "id": "3",
+            "episodename": "EP3: Latest Gadgets!",
+            "link": "https://podcast-example.com/fdstudio/ep-3"
+          }
+        ]
+      }
+    }
+  ]

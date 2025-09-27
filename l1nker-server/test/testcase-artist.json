@@ -1,0 +1,75 @@
+
+[
+    {
+      "component_type": "LinkProfile",
+      "component_data": {
+        "ArtistName": "Fds",
+        "Verified": true,
+        "Description": "Fds is a producer from MPAM Laboratory",
+        "links": [
+          {
+            "text": "Homepage of Fds",
+            "link": "https://fds.srt.pub"
+          },
+          {
+            "text": "Other URL",
+            "link": "https://mpam-lab.xyz/others"
+          }
+        ]
+      }
+    },
+    {
+      "component_type": "LinkMusic",
+      "component_data": {
+        "Discography": [
+          {
+            "title": "PastDemo",
+            "year": "2021",
+            "type": "Compilation",
+            "link": "fds-demo"
+          },
+          {
+            "title": "Meaningless Night",
+            "year": "2022",
+            "type": "Single",
+            "link": "night"
+          },
+          {
+            "title": "NeuralGenesisUnit",
+            "year": "2025",
+            "type": "Album",
+            "link": "ngu"
+          },
+          {
+            "title": "NGU3rd Main Theme",
+            "year": "2025",
+            "type": "EP",
+            "link": "ngu3rd-ep"
+          }
+        ]
+      }
+    },
+    {
+      "component_type": "LinkEvent",
+      "component_data": [
+        {
+          "Date": "20250402",
+          "Time": "1300",
+          "Event": "Never Give Up 3rd",
+          "Place": "Henan Zhengzhou"
+        },
+        {
+          "Date": "20250601",
+          "Time": "1900",
+          "Event": "Arch Sotsugyo Party 2025",
+          "Place": "HAUT 32th 32201"
+        },
+        {
+          "Date": "20250921",
+          "Time": "2100",
+          "Event": "Fds 1st Studio Live",
+          "Place": "Tianjin"
+        }
+      ]
+    }
+  ]

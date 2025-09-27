@@ -19,6 +19,7 @@
         :on-success="handleImageUploadSuccess"
         :before-upload="beforeUpload"
         :show-file-list="false"
+        :headers="uploadHeaders"
       >
         <el-button type="primary">
           <el-icon><Upload /></el-icon>Upload Image
@@ -122,6 +123,7 @@
         :on-success="handleFaviconUploadSuccess"
         :before-upload="beforeUpload"
         :show-file-list="false"
+        :headers="uploadHeaders"
       >
         <el-button type="primary">
           <el-icon><Upload /></el-icon>Upload Favicon
@@ -135,7 +137,7 @@
 </template>
 
 <script>
-import { ref, defineComponent,  onMounted, watchEffect } from 'vue';
+import { ref, defineComponent, onMounted, watchEffect } from 'vue';
 import draggable from 'vuedraggable';
 import { Rank } from '@element-plus/icons-vue';
 
@@ -163,31 +165,46 @@ export default defineComponent({
     const itemForm = ref(null);
     const editingIndex = ref(-1);
     const drag = ref(false);
+    const uploadHeaders = ref({
+      Authorization: `Bearer ${localStorage.getItem('authToken')}`
+    });
 
+    // Initialize from props
+    const item = ref(props.item || {});
+
+    // Update local buttons when item changes
     watchEffect(() => {
-        if (props.item && props.item.buttons) {
+      if (props.item && props.item.buttons) {
+        try {
+          if (typeof props.item.buttons === 'string') {
+            localButtons.value = [...JSON.parse(props.item.buttons)];
+          } else {
             localButtons.value = [...props.item.buttons];
-        } else {
-            localButtons.value = [];
+          }
+        } catch (e) {
+          console.error('Failed to parse buttons:', e);
+          localButtons.value = [];
         }
-      });
-
+      } else {
+        localButtons.value = [];
+      }
+    });
 
     const addButton = () => {
       localButtons.value.push({
         text: '',
         link: '',
         isDownload: false,
-        backgroundColor: props.item.buttonColor || '#3498db',
+        backgroundColor: item.value.buttonColor || '#3498db',
       });
     };
 
     const removeButton = (index) => {
-       localButtons.value.splice(index, 1);
+      localButtons.value.splice(index, 1);
       if (editingIndex.value === index) {
-          editingIndex.value = -1
+        editingIndex.value = -1;
       } else if (editingIndex.value > index) {
-          editingIndex.value --
+        editingIndex.value--;
       }
     };
 
@@ -204,11 +221,15 @@ export default defineComponent({
     };
 
     const handleImageUploadSuccess = (response) => {
-      props.item.profileImageUrl = response.imageUrl;
+      item.value.profileImageUrl = response.imageUrl;
+      // Notify parent of changes
+      emit('update:item', { ...item.value });
     };
 
     const handleFaviconUploadSuccess = (response) => {
-      props.item.faviconUrl = response.imageUrl;
+      item.value.faviconUrl = response.imageUrl;
+      // Notify parent of changes
+      emit('update:item', { ...item.value });
     };
 
     const beforeUpload = (file) => {
@@ -239,11 +260,12 @@ export default defineComponent({
       editButton,
       cancelEditButton,
       drag,
+      item,
+      uploadHeaders,
     };
   },
 });
 </script>
-
 
 <style scoped>
 .drag-handle {

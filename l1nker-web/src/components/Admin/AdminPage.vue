@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="admin-page">
     <el-page-header title="Admin Panel">
       <template #extra>
         <el-button type="danger" @click="logout">Logout</el-button>
@@ -22,7 +22,7 @@
       </el-table>
 
       <el-dialog v-model="showEditModal" :title="`Edit ${selectedItem.redirectKey}`" width="80%" @close="closeEditModal">
-        <item-form :item="selectedItem" :isEdit="true" :uploadUrl="uploadUrl" @update:item="updateSelectedItem" />
+        <item-form :item="selectedItem" :is-edit="true" :upload-url="uploadUrl" @update:item="updateSelectedItem" />
         <template #footer>
           <el-button @click="closeEditModal">Cancel</el-button>
           <el-button type="primary" @click="updateItem">Update</el-button>
@@ -32,7 +32,7 @@
       </el-dialog>
 
       <el-dialog v-model="showCreateModal" title="Create New Item" width="80%" @close="closeCreateModal">
-        <item-form :item="newItem" :isEdit="false" :uploadUrl="uploadUrl" @update:item="updateNewItem" />
+        <item-form :item="newItem" :is-edit="false" :upload-url="uploadUrl" @update:item="updateNewItem" />
         <template #footer>
           <el-button @click="closeCreateModal">Cancel</el-button>
           <el-button type="primary" @click="createItem">Create</el-button>
@@ -261,3 +261,11 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.admin-page {
+  background-color: #ffffff;
+  min-height: 100vh;
+  padding: 20px;
+}
+</style>

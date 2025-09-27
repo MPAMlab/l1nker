@@ -1,0 +1,55 @@
+[
+    {
+      "component_type": "LinkButton",
+      "component_data": [
+        {
+          "text": "Spotify",
+          "link": "https://open.spotify.com/intl-ja/track/6Lv1j6BHl8aJnna7XjpZMC?si=542bcd280e8a4c26",
+          "isDownload": false
+        },
+        {
+          "text": "Apple Music",
+          "link": "https://music.apple.com/cn/album/%E7%84%A1%E6%84%8F%E5%91%B3%E3%81%AE%E3%83%8A%E3%82%A4%E3%83%88-single/1637283618",
+          "isDownload": false
+        },
+        {
+          "text": "Tidal",
+          "link": "https://tidal.com/browse/album/239032687",
+          "isDownload": false
+        },
+        {
+          "text": "Amazon Music",
+          "link": "https://www.amazon.co.jp/music/player/artists/B008PQXIZK/fds",
+          "isDownload": false
+        },
+        {
+          "text": "Rakuten Music",
+          "link": "https://music.rakuten.co.jp/link/album/22446337",
+          "isDownload": false
+        },
+        {
+          "text": "Pandora Music",
+          "link": "https://www.pandora.com/artist/fds/wu-yi-wei-nonaito-single/ALK6z6PjmZnPxJP",
+          "isDownload": false
+        }
+      ]
+    },
+    {
+      "component_type": "LinkProfile",
+      "component_data": {
+        "ArtistName": "Fds",
+        "Verified": true,
+        "Description": "Fds is a producer from MPAM Laboratory",
+        "links": [
+          {
+            "text": "Homepage of Fds",
+            "link": "https://fds.srt.pub"
+          },
+          {
+            "text": "Other URL",
+            "link": "https://mpam-lab.xyz/others"
+          }
+        ]
+      }
+    }
+  ]
