@@ -36,15 +36,30 @@
         </el-table-column>
         <el-table-column label="操作" width="250">
           <template #default="scope">
-            <el-button type="primary" size="small" @click="editArtist(scope.row)">
+            <el-button
+              type="primary"
+              size="small"
+              @click="editArtist(scope.row)"
+              :disabled="!canEditArtist(scope.row)"
+            >
               <el-icon><Edit /></el-icon>
               编辑
             </el-button>
-            <el-button type="success" size="small" @click="viewLinks(scope.row)">
+            <el-button
+              type="success"
+              size="small"
+              @click="viewLinks(scope.row)"
+              :disabled="!canEditArtist(scope.row)"
+            >
               <el-icon><Link /></el-icon>
               链接管理
             </el-button>
-            <el-button type="danger" size="small" @click="deleteArtist(scope.row)">
+            <el-button
+              type="danger"
+              size="small"
+              @click="deleteArtist(scope.row)"
+              v-if="currentUserRole === 'admin'"
+            >
               <el-icon><Delete /></el-icon>
               删除
             </el-button>
@@ -188,8 +203,14 @@ export default {
     const selectedArtist = ref(null);
     const links = ref([]);
     const currentUserRole = ref('user');
+    const currentUserId = ref(null);
 
     const uploadUrl = ref('/api/upload');
+
+    // 检查是否可以编辑艺人
+    const canEditArtist = (artist) => {
+      return currentUserRole.value === 'admin' || artist.user_id === currentUserId.value;
+    };
     const uploadHeaders = ref({
       Authorization: `Bearer ${localStorage.getItem('authToken')}`,
     });

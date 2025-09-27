@@ -64,6 +64,7 @@ export async function handleAdminData(request: Request, pathname: string, env: E
   try {
     if (request.method === 'GET') {
       let query;
+      let results;
       if (pathname.includes('/api/admin/data/')) {
         const id = pathname.split('/').pop() || '';
         const existingItem = await env?.l1nker_db
@@ -96,6 +97,14 @@ export async function handleAdminData(request: Request, pathname: string, env: E
       }
       if ((request as AuthorizedRequest).managedProjects === '*') {
         query = `SELECT * FROM landing_page`;
+        const { results: allResults } = await env?.l1nker_db?.prepare(query).all();
+        if (!allResults) {
+          return new Response(JSON.stringify({ error: 'l1nker_db binding failed.' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        results = allResults;
       } else {
         // 使用参数化查询防止SQL注入
         const managedProjects = (request as AuthorizedRequest).managedProjects as Array<{ redirectKey: string }>;
@@ -103,26 +112,24 @@ export async function handleAdminData(request: Request, pathname: string, env: E
         if (projectKeys.length > 0) {
           const placeholders = projectKeys.map(() => '?').join(',');
           query = `SELECT * FROM landing_page WHERE redirectKey IN (${placeholders})`;
-          const { results } = await env?.l1nker_db?.prepare(query).bind(...projectKeys).all();
-          if (!results) {
+          const { results: filteredResults } = await env?.l1nker_db?.prepare(query).bind(...projectKeys).all();
+          if (!filteredResults) {
             return new Response(JSON.stringify({ error: 'l1nker_db binding failed.' }), {
               status: 500,
               headers: { 'Content-Type': 'application/json' },
             });
           }
-          return new Response(JSON.stringify(results), {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
+          results = filteredResults;
         } else {
-          return new Response(JSON.stringify([]), {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
+          results = [];
         }
       }
+
+      return new Response(JSON.stringify(results), {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
     }
     if (request.method === 'POST') {
       // Check if user has permission to create landing pages
