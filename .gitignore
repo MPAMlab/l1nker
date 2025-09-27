@@ -3,3 +3,4 @@
 l1nker-server/wrangler.toml
 l1nker-server/wrangler.toml
 CLAUDE.md
+.claude/settings.local.json

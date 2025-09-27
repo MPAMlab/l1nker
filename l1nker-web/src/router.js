@@ -13,21 +13,9 @@ const routes = [
     { path: '/404', component: NotFound },
     {
         path: '/admin',
-        name: 'Admin', // Added name for easier referencing
+        name: 'Admin',
         component: AdminPage,
         meta: { requiresAuth: true },
-        children: [
-            {
-                path: 'items', // Removed leading slash
-                name: 'AdminItems',
-                component: AdminItemEdit,
-            },
-            {
-                path: 'users', // Removed leading slash
-                name: 'AdminUsers',
-                component: AdminUserManagement,
-            },
-        ],
     },
     {
         path: '/admin/item/:id', // 新增路由
