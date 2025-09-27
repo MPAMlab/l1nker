@@ -4,10 +4,10 @@
     <div v-else-if="error" class="error">Error: {{ error }}</div>
     <div v-else class="content">
       <div class="background-overlay"></div>
-      <img :src="profileImageUrl ? `/images/${profileImageUrl}` : null" class="background-image" @load="handleImageLoad" />
+      <img :src="profileImageUrl ? `https://sp.srt.pub/images/${profileImageUrl}` : null" class="background-image" @load="handleImageLoad" />
 
       <div class="profile-section">
-        <img :src="profileImageUrl ? `/images/${profileImageUrl}` : null" class="profile-image" alt="Profile" />
+        <img :src="profileImageUrl ? `https://sp.srt.pub/images/${profileImageUrl}` : null" class="profile-image" alt="Profile" />
         <h1 class="title" :style="{ color: textColor }">{{ title }}</h1>
         <h2 class="subtitle" :style="{ color: textColor }">{{ subtitle }}</h2>
       </div>
@@ -116,11 +116,11 @@ export default defineComponent({
         updateFaviconAndTitle() {
               let faviconLink = document.querySelector("link[rel~='icon']") as HTMLLinkElement | null;
               if (faviconLink) {
-                 faviconLink.href = this.faviconUrl ? `/images/${this.faviconUrl}` : "";
+                 faviconLink.href = this.faviconUrl ? `https://sp.srt.pub/images/${this.faviconUrl}` : "";
             } else {
                 faviconLink = document.createElement('link');
                 faviconLink.rel = 'icon';
-                 faviconLink.href = this.faviconUrl ? `/images/${this.faviconUrl}` : "";
+                 faviconLink.href = this.faviconUrl ? `https://sp.srt.pub/images/${this.faviconUrl}` : "";
                  document.head.appendChild(faviconLink);
             }
             document.title = this.pageTitle;

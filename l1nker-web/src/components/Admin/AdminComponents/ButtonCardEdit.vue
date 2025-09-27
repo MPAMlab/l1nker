@@ -10,7 +10,7 @@
     <el-form-item label="Profile Image">
       <el-image
         style="width: 100px; height: 100px; margin-right: 10px;"
-        :src="item.profileImageUrl"
+        :src="item.profileImageUrl ? `https://sp.srt.pub/images/${item.profileImageUrl}` : ''"
         fit="cover"
       />
       <el-upload
@@ -114,7 +114,7 @@
     <el-form-item label="Favicon">
       <el-image
         style="width: 32px; height: 32px; margin-right: 10px;"
-        :src="item.faviconUrl"
+        :src="item.faviconUrl ? `https://sp.srt.pub/images/${item.faviconUrl}` : ''"
         fit="cover"
       />
       <el-upload
@@ -176,10 +176,25 @@ export default defineComponent({
     watchEffect(() => {
       if (props.item && props.item.buttons) {
         try {
+          let buttonsData;
           if (typeof props.item.buttons === 'string') {
-            localButtons.value = [...JSON.parse(props.item.buttons)];
+            buttonsData = JSON.parse(props.item.buttons);
           } else {
-            localButtons.value = [...props.item.buttons];
+            buttonsData = props.item.buttons;
+          }
+
+          // Ensure buttonsData is an array and filter out invalid entries
+          if (Array.isArray(buttonsData)) {
+            localButtons.value = buttonsData
+              .filter(btn => btn && typeof btn === 'object' && btn.text && btn.link)
+              .map(btn => ({
+                text: btn.text || '',
+                link: btn.link || '',
+                isDownload: Boolean(btn.isDownload),
+                backgroundColor: btn.backgroundColor || item.value.buttonColor || '#3498db'
+              }));
+          } else {
+            localButtons.value = [];
           }
         } catch (e) {
           console.error('Failed to parse buttons:', e);
