@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import Home from './components/Home.vue';
+import NotFound from './components/NotFound.vue';
 import HomePage from './components/FrontEnd/HomePage.vue';
 import AdminPage from './components/Admin/AdminPage.vue';
 import LoginPage from './components/Admin/LoginPage.vue';
@@ -6,7 +8,8 @@ import AdminItemEdit from './components/Admin/AdminComponents/ItemManagement.vue
 import AdminUserManagement from './components/Admin/AdminComponents/UserManagement.vue';
 
 const routes = [
-    { path: '/', component: HomePage },
+    { path: '/', component: Home },
+    { path: '/404', component: NotFound },
     {
         path: '/admin',
         name: 'Admin', // Added name for easier referencing

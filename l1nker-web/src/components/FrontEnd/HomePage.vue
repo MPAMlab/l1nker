@@ -83,6 +83,13 @@ export default defineComponent({
               this.error = null;
             try {
                 const response = await fetch(`/api/data?key=${this.redirectKey}`);
+
+                // 如果返回 404，重定向到 404 页面
+                if (response.status === 404) {
+                    window.location.href = '/404';
+                    return;
+                }
+
                 if (!response.ok) {
                     this.error = `Failed to fetch data: ${response.status} ${response.statusText}`;
                     console.error("fetch failed", response);
@@ -93,6 +100,11 @@ export default defineComponent({
                  console.log("data:", data);
 
                if (data.error) {
+                  // 如果数据不存在，重定向到 404
+                  if (data.error.includes('No item found')) {
+                      window.location.href = '/404';
+                      return;
+                  }
                   this.error = `Failed to fetch data from cloudflare d1: ${data.error}`;
                   console.error("data.error", data.error);
                   return;
