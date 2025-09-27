@@ -64,24 +64,36 @@ async function handleGetArtists(env: Env, userId: number, role: string): Promise
             `;
         }
 
-        const stmt = env.l1nker_db.prepare(query);
-        const { results } = role === 'admin'
-            ? await stmt.all()
-            : await stmt.bind(userId).all();
-
-        if (!results) {
-            return new Response(JSON.stringify({ error: 'Failed to fetch artists' }), {
+        if (!env.l1nker_db) {
+            return new Response(JSON.stringify({ error: 'Database not available' }), {
                 status: 500,
                 headers: { 'Content-Type': 'application/json' },
             });
         }
 
-        return new Response(JSON.stringify(results), {
+        const stmt = env.l1nker_db.prepare(query);
+        const { results, success, error } = role === 'admin'
+            ? await stmt.all()
+            : await stmt.bind(userId).all();
+
+        if (!success || error) {
+            console.error('Database query failed:', error);
+            return new Response(JSON.stringify({ error: 'Failed to fetch artists', details: error }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // Return empty array if no results, not null
+        return new Response(JSON.stringify(results || []), {
             headers: { 'Content-Type': 'application/json' },
         });
     } catch (error) {
         console.error('Error fetching artists:', error);
-        return new Response(JSON.stringify({ message: 'Internal server error' }), {
+        return new Response(JSON.stringify({
+            message: 'Internal server error',
+            details: error instanceof Error ? error.message : String(error)
+        }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' },
         });

@@ -47,10 +47,18 @@ async function handleGetUsers(request: Request, env: Env): Promise<Response> {
       ORDER BY created_at DESC
     `;
 
-    const { results } = await env.l1nker_db.prepare(query).all();
+    if (!env.l1nker_db) {
+      return new Response(JSON.stringify({ error: 'Database not available' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
-    if (!results) {
-      return new Response(JSON.stringify({ error: 'Failed to fetch users' }), {
+    const { results, success, error } = await env.l1nker_db.prepare(query).all();
+
+    if (!success || error) {
+      console.error('Database query failed:', error);
+      return new Response(JSON.stringify({ error: 'Failed to fetch users', details: error }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -99,6 +107,13 @@ async function handleCreateUser(request: Request, env: Env): Promise<Response> {
     }
 
     // Check if user already exists
+    if (!env.l1nker_db) {
+      return new Response(JSON.stringify({ error: 'Database not available' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const existingUser = await env.l1nker_db
       .prepare('SELECT id FROM l1nker_user WHERE username = ? OR email = ?')
       .bind(username, email)
@@ -117,17 +132,24 @@ async function handleCreateUser(request: Request, env: Env): Promise<Response> {
     // Set default managedProjects based on role
     const projects = managedProjects || (role === 'admin' ? '*' : '');
 
+    if (!env.l1nker_db) {
+      return new Response(JSON.stringify({ error: 'Database not available' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     // Create user
     const result = await env.l1nker_db
       .prepare(`
-        INSERT INTO l1nker_user (username, email, password_hash, role, managedProjects)
+        INSERT INTO l1nker_user (username, email, password, role, managed_projects)
         VALUES (?, ?, ?, ?, ?)
       `)
       .bind(username, email, passwordHash, role, projects)
       .run();
 
-    if (!result || !result.success) {
-      return new Response(JSON.stringify({ error: 'Failed to create user' }), {
+    if (!result) {
+      return new Response(JSON.stringify({ error: 'Failed to create user - database error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
