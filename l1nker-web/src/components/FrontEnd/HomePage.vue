@@ -448,4 +448,3 @@ body {
   }
 }
 </style>
-</template>
