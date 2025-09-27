@@ -145,14 +145,14 @@ export default {
 
     const logout = () => {
       localStorage.removeItem('authToken');
-      window.location.href = '/admin/login';
+      window.location.href = '/login';
     };
 
     const fetchUserInfo = async () => {
       try {
         const token = localStorage.getItem('authToken');
         if (!token) {
-          window.location.href = '/admin/login';
+          window.location.href = '/login';
           return;
         }
 
@@ -162,7 +162,7 @@ export default {
         userRole.value = payload.role || 'user';
       } catch (error) {
         console.error('Failed to fetch user info:', error);
-        logout();
+        window.location.href = '/login';
       }
     };
 

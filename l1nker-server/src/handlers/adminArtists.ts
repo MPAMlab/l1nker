@@ -64,10 +64,10 @@ async function handleGetArtists(env: Env, userId: number, role: string): Promise
             `;
         }
 
-        const { results } = await env.l1nker_db
-            .prepare(query)
-            .bind(role === 'admin' ? undefined : userId)
-            .all();
+        const stmt = env.l1nker_db.prepare(query);
+        const { results } = role === 'admin'
+            ? await stmt.all()
+            : await stmt.bind(userId).all();
 
         if (!results) {
             return new Response(JSON.stringify({ error: 'Failed to fetch artists' }), {
