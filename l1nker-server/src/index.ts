@@ -10,6 +10,7 @@ import { handleArtistPage } from './handlers/artistPage.ts';
 import { handleAdminArtists } from './handlers/adminArtists.ts';
 import { handleUserManagement } from './handlers/userManagement.ts';
 import { handleChangePassword } from './handlers/changePassword.ts';
+import { handleDebug } from './handlers/debug.ts';
 import { Env } from './types'; // Import the Env type
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -53,6 +54,9 @@ export default {
         }
         if (pathname === '/api/change-password') {
             return handleChangePassword(request, env);
+        }
+        if (pathname === '/api/debug') {
+            return handleDebug(request, env);
         }
         // For all other request, let cloudflare handle it
         return fetch(request);

@@ -3,8 +3,13 @@
     <el-form-item label="Redirect Key" v-if="!isEdit">
       <el-input v-model="item.redirectKey" />
     </el-form-item>
-    <el-form-item label="New Redirect Key" v-else>
-      <el-input v-model="item.newRedirectKey" />
+    <el-form-item label="Current Redirect Key" v-else>
+      <el-input :model-value="item.redirectKey" disabled />
+      <el-input
+        v-model="item.newRedirectKey"
+        placeholder="输入新的 Redirect Key（留空则不修改）"
+        style="margin-top: 10px;"
+      />
     </el-form-item>
 
     <el-form-item label="Profile Image">
@@ -235,6 +240,13 @@ export default defineComponent({
     // Initialize from props
     const item = ref(props.item || {});
 
+    // Watch for prop changes and update local item
+    watchEffect(() => {
+      if (props.item) {
+        item.value = JSON.parse(JSON.stringify(props.item));
+      }
+    });
+
     // Fetch available artists
     const fetchArtists = async () => {
       try {
@@ -259,6 +271,11 @@ export default defineComponent({
         selectedArtist.value = null;
       }
     });
+
+    // Watch for changes in important fields and emit updates
+    watch([() => item.value.title, () => item.value.subtitle, () => item.value.pageTitle, () => item.value.buttonColor, () => item.value.show_artist_section], () => {
+      emit('update:item', { ...item.value });
+    }, { deep: true });
 
     // Update local buttons when item changes
     watchEffect(() => {

@@ -41,7 +41,7 @@ async function handleGetUsers(request: Request, env: Env): Promise<Response> {
         username,
         email,
         role,
-        managedProjects,
+        managed_projects,
         created_at
       FROM l1nker_user
       ORDER BY created_at DESC
@@ -70,7 +70,7 @@ async function handleGetUsers(request: Request, env: Env): Promise<Response> {
       username: user.username,
       email: user.email,
       role: user.role,
-      managedProjects: user.managedProjects,
+      managedProjects: user.managed_projects,
       created_at: user.created_at
     }));
 
@@ -217,7 +217,7 @@ async function handleUpdateUser(request: Request, pathname: string, env: Env): P
     if (password) {
       // Hash password using PBKDF2 (same as existing system)
       const passwordHash = await hashPassword(password, env);
-      updateFields.push('password_hash = ?');
+      updateFields.push('password = ?');
       bindValues.push(passwordHash);
     }
 

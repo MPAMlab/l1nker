@@ -18,7 +18,7 @@
         <el-table-column prop="pageTitle" label="页面标题" />
         <el-table-column prop="created_at" label="创建时间" width="180">
           <template #default="scope">
-            {{ new Date(scope.row.created_at).toLocaleString() }}
+            {{ scope.row.created_at ? new Date(scope.row.created_at).toLocaleString() : '-' }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="200">
@@ -66,6 +66,7 @@
 import { ref, onMounted } from 'vue';
 import { Plus, Edit, View, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useRouter } from 'vue-router';
 
 export default {
   name: 'ItemList',
@@ -78,6 +79,7 @@ export default {
   setup() {
     const items = ref([]);
     const loading = ref(false);
+    const router = useRouter();
 
     const fetchItems = async () => {
       loading.value = true;
@@ -139,7 +141,7 @@ export default {
     };
 
     const editItem = (item) => {
-      window.location.href = `/admin/item/${item.id}`;
+      router.push(`/admin/item/${item.id}`);
     };
 
     const viewPage = (item) => {
