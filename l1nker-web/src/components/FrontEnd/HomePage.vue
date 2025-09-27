@@ -48,6 +48,7 @@
           This site currently don't use cookie to store your information.<br>This page may contain affiliate links.
         </p>
       </footer>
+    </div>
   </div>
 </template>
 

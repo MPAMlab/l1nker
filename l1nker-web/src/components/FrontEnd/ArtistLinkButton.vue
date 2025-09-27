@@ -16,7 +16,7 @@
 <script lang="ts">
 import { defineComponent, computed } from 'vue';
 import {
-  Link, VideoPlay, MusicNote, Picture, ChatDotRound,
+  Link, VideoPlay, Headset, Picture, ChatDotRound,
   Shop, MoreFilled, Trophy, Star
 } from '@element-plus/icons-vue';
 
@@ -44,7 +44,7 @@ export default defineComponent({
         return VideoPlay;
       }
       if (platformLower.includes('spotify') || platformLower.includes('music') || platformLower.includes('apple')) {
-        return MusicNote;
+        return Headset;
       }
       if (platformLower.includes('instagram') || platformLower.includes('photo')) {
         return Picture;
