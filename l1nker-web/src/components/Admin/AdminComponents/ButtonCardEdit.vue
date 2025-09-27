@@ -172,7 +172,7 @@
 
     <template v-if="item.show_artist_section">
       <el-form-item label="Select Artist Profile">
-        <el-select v-model="item.artist_profile_id" placeholder="Select an artist profile" clearable>
+        <el-select v-model="item.artist_profile_id" placeholder="Select an artist profile" clearable :loading="artistsLoading">
           <el-option
             v-for="artist in availableArtists"
             :key="artist.id"
@@ -236,19 +236,23 @@ export default defineComponent({
     });
     const availableArtists = ref([]);
     const selectedArtist = ref(null);
+    const artistsLoading = ref(false);
 
     // Initialize from props
-    const item = ref(props.item || {});
+    const item = ref(props.item ? JSON.parse(JSON.stringify(props.item)) : {});
 
-    // Watch for prop changes and update local item
-    watchEffect(() => {
-      if (props.item) {
-        item.value = JSON.parse(JSON.stringify(props.item));
-      }
-    });
+    // Debounced update function
+    let updateTimeout = null;
+    const debouncedUpdate = (newItem) => {
+      clearTimeout(updateTimeout);
+      updateTimeout = setTimeout(() => {
+        emit('update:item', newItem);
+      }, 300);
+    };
 
     // Fetch available artists
     const fetchArtists = async () => {
+      artistsLoading.value = true;
       try {
         const response = await fetch('/api/admin/artists', {
           headers: {
@@ -260,6 +264,8 @@ export default defineComponent({
         }
       } catch (error) {
         console.error('Failed to fetch artists:', error);
+      } finally {
+        artistsLoading.value = false;
       }
     };
 
@@ -272,20 +278,20 @@ export default defineComponent({
       }
     });
 
-    // Watch for changes in important fields and emit updates
+    // Watch for changes in important fields and emit updates (debounced)
     watch([() => item.value.title, () => item.value.subtitle, () => item.value.pageTitle, () => item.value.buttonColor, () => item.value.show_artist_section], () => {
-      emit('update:item', { ...item.value });
-    }, { deep: true });
+      debouncedUpdate({ ...item.value });
+    });
 
-    // Update local buttons when item changes
-    watchEffect(() => {
-      if (props.item && props.item.buttons) {
+    // Update local buttons when props change
+    watch(() => props.item?.buttons, (newButtons) => {
+      if (newButtons) {
         try {
           let buttonsData;
-          if (typeof props.item.buttons === 'string') {
-            buttonsData = JSON.parse(props.item.buttons);
+          if (typeof newButtons === 'string') {
+            buttonsData = JSON.parse(newButtons);
           } else {
-            buttonsData = props.item.buttons;
+            buttonsData = newButtons;
           }
 
           // Ensure buttonsData is an array and filter out invalid entries
@@ -308,7 +314,7 @@ export default defineComponent({
       } else {
         localButtons.value = [];
       }
-    });
+    }, { immediate: true });
 
     const addButton = () => {
       localButtons.value.push({
@@ -338,7 +344,7 @@ export default defineComponent({
 
     const handleDragChange = (evt) => {
       // 当拖动完成后，通知父组件更新
-      emit('update:item', {
+      debouncedUpdate({
         ...item.value,
         buttons: JSON.stringify(localButtons.value)
       });
@@ -347,13 +353,13 @@ export default defineComponent({
     const handleImageUploadSuccess = (response) => {
       item.value.profileImageUrl = response.imageUrl;
       // Notify parent of changes
-      emit('update:item', { ...item.value });
+      debouncedUpdate({ ...item.value });
     };
 
     const handleFaviconUploadSuccess = (response) => {
       item.value.faviconUrl = response.imageUrl;
       // Notify parent of changes
-      emit('update:item', { ...item.value });
+      debouncedUpdate({ ...item.value });
     };
 
     const beforeUpload = (file) => {
@@ -396,6 +402,7 @@ export default defineComponent({
       selectedArtist,
       fetchArtists,
       createArtistProfile,
+      artistsLoading,
     };
 
     onMounted(() => {

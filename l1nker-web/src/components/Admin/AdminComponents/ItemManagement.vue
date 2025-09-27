@@ -7,11 +7,15 @@
       </el-page-header>
 
       <div class="edit-container">
-        <ButtonCardEdit
-          :item="item"
-          :isEdit="true"
-          @update:item="updateItem"
-        />
+        <el-skeleton :loading="loading" animated :rows="10">
+          <template #default>
+            <ButtonCardEdit
+              :item="item"
+              :isEdit="true"
+              @update:item="updateItem"
+            />
+          </template>
+        </el-skeleton>
 
         <div class="action-buttons">
           <el-button type="primary" @click="saveItem" :loading="saving">
@@ -41,6 +45,7 @@ export default defineComponent({
     const item = ref({});
     const router = useRouter();
     const saving = ref(false);
+    const loading = ref(true);
 
     const goBack = () => {
       router.push('/admin/landing-pages');
@@ -77,15 +82,25 @@ export default defineComponent({
     };
 
     onMounted(async () => {
-      const id = window.location.pathname.split('/').pop();
-      const response = await fetch(`/api/admin/data/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
+      try {
+        const id = window.location.pathname.split('/').pop();
+        const response = await fetch(`/api/admin/data/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
 
-      if (response.ok) {
-        item.value = await response.json();
+        if (response.ok) {
+          item.value = await response.json();
+        } else {
+          ElMessage.error('加载失败，请重试');
+          router.push('/admin/landing-pages');
+        }
+      } catch (error) {
+        ElMessage.error('加载失败: ' + error.message);
+        router.push('/admin/landing-pages');
+      } finally {
+        loading.value = false;
       }
     });
 
@@ -94,7 +109,8 @@ export default defineComponent({
       goBack,
       updateItem,
       saveItem,
-      saving
+      saving,
+      loading
     };
   }
 });
