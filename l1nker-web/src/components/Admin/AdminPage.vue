@@ -2,6 +2,9 @@
   <div class="admin-page">
     <el-page-header title="Admin Panel">
       <template #extra>
+        <el-button type="primary" @click="openCreateModal">
+          <el-icon><Plus /></el-icon>Create New Item
+        </el-button>
         <el-button type="danger" @click="logout">Logout</el-button>
       </template>
     </el-page-header>
@@ -49,11 +52,14 @@
 import { ref, onMounted } from 'vue';
 import ItemForm from './AdminComponents/ButtonCardEdit.vue';
 import { ElMessage } from 'element-plus';
+import { EditPen, Plus } from '@element-plus/icons-vue';
 import _ from 'lodash';
 
 export default {
   components: {
     ItemForm,
+    EditPen,
+    Plus,
   },
   setup() {
     const data = ref(null);
@@ -119,6 +125,10 @@ export default {
     const closeCreateModal = () => {
       showCreateModal.value = false;
       newItem.value = { buttons: [] };
+    };
+
+    const openCreateModal = () => {
+      showCreateModal.value = true;
     };
 
 
@@ -249,6 +259,7 @@ export default {
       handleRowClick,
       closeEditModal,
       closeCreateModal,
+      openCreateModal,
       updateItem,
       deleteItem,
       createItem,

@@ -42,15 +42,16 @@
             type: 'transition-group',
             name: !drag ? 'flip-list' : null,
           }"
-          item-key="id"
+          item-key="text"
           handle=".drag-handle"
           :animation="200"
           @start="drag = true"
           @end="drag = false"
+          @change="handleDragChange"
         >
           <template #item="{ element, index }">
             <div
-              :key="index"
+              :key="`${element.text}-${index}`"
               class="button-item"
               style="
                 border: 1px solid #eee;
@@ -139,12 +140,15 @@
 <script>
 import { ref, defineComponent, onMounted, watchEffect } from 'vue';
 import draggable from 'vuedraggable';
-import { Rank } from '@element-plus/icons-vue';
+import { Rank, Delete, Plus, Upload } from '@element-plus/icons-vue';
 
 export default defineComponent({
   components: {
     draggable,
     Rank,
+    Delete,
+    Plus,
+    Upload,
   },
   props: {
     item: {
@@ -232,7 +236,11 @@ export default defineComponent({
     };
 
     const handleDragChange = (evt) => {
-      console.log('Drag completed', evt);
+      // 当拖动完成后，通知父组件更新
+      emit('update:item', {
+        ...item.value,
+        buttons: JSON.stringify(localButtons.value)
+      });
     };
 
     const handleImageUploadSuccess = (response) => {
@@ -285,8 +293,32 @@ export default defineComponent({
 <style scoped>
 .drag-handle {
   color: #909399;
+  cursor: move;
 }
 .drag-handle:hover {
   color: #409EFF;
+}
+
+.button-item {
+  transition: all 0.3s ease;
+}
+
+.button-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.flip-list-move {
+  transition: transform 0.5s;
+}
+
+.flip-list-enter-active,
+.flip-list-leave-active {
+  transition: all 0.5s;
+}
+
+.flip-list-enter-from,
+.flip-list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
 }
 </style>
