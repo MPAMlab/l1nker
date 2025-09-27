@@ -71,7 +71,7 @@
       <el-col :span="18">
         <!-- 落地页管理 -->
         <div v-if="activeMenu === 'landing-pages'">
-          <ItemManagement />
+          <router-view />
         </div>
 
         <!-- 用户管理 -->

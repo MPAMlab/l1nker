@@ -4,7 +4,7 @@ import { Env } from '../types';
 export async function handleLogin(request: Request, env: Env): Promise<Response> {
     try {
         const { username, password } = await request.json() as { username: string; password: string };
-        const query = `SELECT id, username, password, managed_projects FROM l1nker_user WHERE username = ?`;
+        const query = `SELECT id, username, password, managed_projects, role FROM l1nker_user WHERE username = ?`;
         const { results } = await env?.l1nker_db?.prepare(query).bind(username).all();
         if (!results) {
             return new Response(JSON.stringify({ error: "l1nker_db binding failed." }), {
@@ -34,6 +34,7 @@ export async function handleLogin(request: Request, env: Env): Promise<Response>
             userId: user.id,
             username: user.username,
             managedProjects: user.managed_projects,
+            role: user.role || 'user',
             exp: Math.floor(Date.now() / 1000) + (60 * 60), // 过期时间：1小时
         };
         const token = await new SignJWT(jwtPayload)

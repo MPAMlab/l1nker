@@ -5,6 +5,7 @@ import HomePage from './components/FrontEnd/HomePage.vue';
 import ArtistPage from './components/ArtistPage.vue';
 import AdminPage from './components/Admin/AdminPage.vue';
 import LoginPage from './components/Admin/LoginPage.vue';
+import AdminItemList from './components/Admin/AdminComponents/ItemList.vue';
 import AdminItemEdit from './components/Admin/AdminComponents/ItemManagement.vue';
 import AdminUserManagement from './components/Admin/AdminComponents/UserManagement.vue';
 
@@ -16,12 +17,18 @@ const routes = [
         name: 'Admin',
         component: AdminPage,
         meta: { requiresAuth: true },
-    },
-    {
-        path: '/admin/item/:id', // 新增路由
-        name: 'AdminItemManagement',
-        component: AdminItemEdit,
-        meta: { requiresAuth: true },
+        children: [
+            {
+                path: '',
+                name: 'AdminItemList',
+                component: AdminItemList,
+            },
+            {
+                path: 'item/:id',
+                name: 'AdminItemManagement',
+                component: AdminItemEdit,
+            },
+        ],
     },
     { path: '/login', component: LoginPage },
     { path: '/artist/:artistKey', component: ArtistPage },
