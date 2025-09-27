@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import Home from './components/Home.vue';
 import NotFound from './components/NotFound.vue';
 import HomePage from './components/FrontEnd/HomePage.vue';
+import ArtistPage from './components/ArtistPage.vue';
 import AdminPage from './components/Admin/AdminPage.vue';
 import LoginPage from './components/Admin/LoginPage.vue';
 import AdminItemEdit from './components/Admin/AdminComponents/ItemManagement.vue';
@@ -35,6 +36,7 @@ const routes = [
         meta: { requiresAuth: true },
     },
     { path: '/login', component: LoginPage },
+    { path: '/artist/:artistKey', component: ArtistPage },
     { path: '/:redirectKey', component: HomePage },
 ];
 

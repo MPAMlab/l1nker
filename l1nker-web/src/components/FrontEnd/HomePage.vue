@@ -22,8 +22,27 @@
           :isDownload="button.isDownload"
         />
       </div>
-    </div>
-    <footer class="footer">
+
+      <!-- Artist Section -->
+      <div v-if="artist && show_artist_section" class="artist-section">
+        <div class="artist-content" @click="goToArtistPage">
+          <img
+            :src="artist.profile_photo_url ? `https://sp.srt.pub/images/${artist.profile_photo_url}` : null"
+            class="artist-avatar"
+            alt="Artist"
+          />
+          <div class="artist-info">
+            <h3 class="artist-name">{{ artist.artist_name }}</h3>
+            <p class="artist-bio">{{ artist.main_profile }}</p>
+            <div class="artist-link">
+              <span>View Full Profile</span>
+              <el-icon><ArrowRight /></el-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer">
         <p class="powered-by">
           Powered by <a href="https://github.com/MPAMlab/l1nker" target="_blank" rel="noopener noreferrer">L1nker by MPAM Laboratory.</a><br>
           This site currently don't use cookie to store your information.<br>This page may contain affiliate links.
@@ -35,6 +54,7 @@
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
 import LinkButton from './FrontComponents/LinkButton.vue';
+import { ArrowRight } from '@element-plus/icons-vue';
 import Color from 'color';
 
 interface Button {
@@ -48,6 +68,7 @@ export default defineComponent({
     name: 'HomePage',
     components: {
         LinkButton,
+        ArrowRight,
     },
     data() {
       return {
@@ -62,6 +83,8 @@ export default defineComponent({
             error: null as string | null,
             redirectKey: 'default',
             textColor: 'white',
+            show_artist_section: false,
+            artist: null as any,
         };
     },
     async created() {
@@ -116,6 +139,8 @@ export default defineComponent({
                  this.buttons = data.buttons;
                  this.faviconUrl = data.faviconUrl;
                  this.pageTitle = data.pageTitle;
+                 this.show_artist_section = data.show_artist_section || false;
+                 this.artist = data.artist;
                 this.updateFaviconAndTitle();
             } catch (error) {
                 const err = error as Error;
@@ -173,6 +198,11 @@ export default defineComponent({
             img.onerror = () => {
              this.textColor = 'white'
             }
+        },
+        goToArtistPage() {
+          if (this.artist && this.artist.artist_page_key) {
+            window.location.href = `/artist/${this.artist.artist_page_key}`;
+          }
         },
     },
 });
@@ -287,6 +317,75 @@ body {
   margin: 0 auto;
   padding: 0 16px;
   box-sizing: border-box;
+}
+
+.artist-section {
+  width: 85%;
+  max-width: 460px;
+  margin: 40px auto 0;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.artist-section:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.artist-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.artist-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.artist-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.artist-name {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.artist-bio {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.artist-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  transition: gap 0.3s ease;
+}
+
+.artist-link:hover {
+  gap: 8px;
 }
 .footer {
   width: 100%;

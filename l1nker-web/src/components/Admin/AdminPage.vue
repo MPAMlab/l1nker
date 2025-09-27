@@ -1,273 +1,130 @@
 <template>
   <div class="admin-page">
-    <el-page-header title="Admin Panel">
-      <template #extra>
-        <el-button type="primary" @click="openCreateModal">
-          <el-icon><Plus /></el-icon>Create New Item
-        </el-button>
-        <el-button type="danger" @click="logout">Logout</el-button>
-      </template>
-    </el-page-header>
-    <el-alert v-if="error" :type="error.type || 'error'" :closable="false" :title="error.message || 'An error occurred'" />
-    <div v-if="loading">
-      <el-empty description="Loading data..." />
-    </div>
-    <div v-else-if="data && data.length > 0">
-      <el-table :data="data" style="width: 100%" @row-click="handleRowClick">
-        <el-table-column prop="redirectKey" label="Redirect Key" />
-        <el-table-column label="Actions" width="150">
-          <template #default="scope">
-            <el-button type="primary" size="small" @click="handleRowClick(scope.row)">
-              <el-icon><EditPen /></el-icon>Edit
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+    <el-row :gutter="20">
+      <!-- 左侧导航栏 -->
+      <el-col :span="6">
+        <el-card class="nav-card">
+          <h3>管理面板</h3>
+          <el-menu
+            :default-active="activeMenu"
+            @select="handleMenuSelect"
+          >
+            <el-menu-item index="landing-pages">
+              <el-icon><Document /></el-icon>
+              <span>落地页管理</span>
+            </el-menu-item>
+            <el-menu-item index="users" v-if="isAdmin">
+              <el-icon><User /></el-icon>
+              <span>用户管理</span>
+            </el-menu-item>
+            <el-menu-item index="artists">
+              <el-icon><Microphone /></el-icon>
+              <span>艺人管理</span>
+            </el-menu-item>
+            <el-menu-item index="password">
+              <el-icon><Lock /></el-icon>
+              <span>修改密码</span>
+            </el-menu-item>
+          </el-menu>
+          <div class="user-info">
+            <p>当前用户: {{ currentUser }}</p>
+            <p>角色: {{ userRole }}</p>
+            <el-button type="danger" @click="logout">退出登录</el-button>
+          </div>
+        </el-card>
+      </el-col>
 
-      <el-dialog v-model="showEditModal" :title="`Edit ${selectedItem.redirectKey}`" width="80%" @close="closeEditModal">
-        <item-form :item="selectedItem" :is-edit="true" :upload-url="uploadUrl" @update:item="updateSelectedItem" />
-        <template #footer>
-          <el-button @click="closeEditModal">Cancel</el-button>
-          <el-button type="primary" @click="updateItem">Update</el-button>
-          <el-button type="danger" @click="deleteItem">Delete</el-button>
-          <el-button type="warning" @click="updateRedirectKey">Update RedirectKey</el-button>
-        </template>
-      </el-dialog>
+      <!-- 右侧内容区 -->
+      <el-col :span="18">
+        <!-- 落地页管理 -->
+        <div v-if="activeMenu === 'landing-pages'">
+          <ItemManagement />
+        </div>
 
-      <el-dialog v-model="showCreateModal" title="Create New Item" width="80%" @close="closeCreateModal">
-        <item-form :item="newItem" :is-edit="false" :upload-url="uploadUrl" @update:item="updateNewItem" />
-        <template #footer>
-          <el-button @click="closeCreateModal">Cancel</el-button>
-          <el-button type="primary" @click="createItem">Create</el-button>
-        </template>
-      </el-dialog>
-    </div>
-    <div v-else>
-      <el-empty description="No data available." />
-    </div>
+        <!-- 用户管理 -->
+        <div v-if="activeMenu === 'users' && isAdmin">
+          <UserManagement />
+        </div>
+
+        <!-- 艺人管理 -->
+        <div v-if="activeMenu === 'artists'">
+          <ArtistManagement />
+        </div>
+
+        <!-- 修改密码 -->
+        <div v-if="activeMenu === 'password'">
+          <ChangePassword />
+        </div>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
-import ItemForm from './AdminComponents/ButtonCardEdit.vue';
-import { ElMessage } from 'element-plus';
-import { EditPen, Plus } from '@element-plus/icons-vue';
-import _ from 'lodash';
+import { ref, computed, onMounted } from 'vue';
+import { Document, User, Microphone, Lock } from '@element-plus/icons-vue';
+import ItemManagement from './AdminComponents/ItemManagement.vue';
+import UserManagement from './AdminComponents/UserManagement.vue';
+import ArtistManagement from './AdminComponents/ArtistManagement.vue';
+import ChangePassword from './AdminComponents/ChangePassword.vue';
 
 export default {
+  name: 'AdminPage',
   components: {
-    ItemForm,
-    EditPen,
-    Plus,
+    Document,
+    User,
+    Microphone,
+    Lock,
+    ItemManagement,
+    UserManagement,
+    ArtistManagement,
+    ChangePassword,
   },
   setup() {
-    const data = ref(null);
-    const error = ref(null);
-    const loading = ref(true);
-    const showEditModal = ref(false);
-    const showCreateModal = ref(false);
-    const selectedItem = ref({});
-    const newItem = ref({ buttons: [] });
-    const uploadUrl = ref('/api/upload'); // Make uploadUrl reactive
+    const activeMenu = ref('landing-pages');
+    const currentUser = ref('');
+    const userRole = ref('');
 
-    const fetchData = async () => {
-      loading.value = true;
-      error.value = null;
-      try {
-        const response = await fetch('/api/admin/data', {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-          },
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          error.value = { type: 'error', message: errorData.message || 'Failed to fetch data' };
-          throw new Error(errorData.message);
-        }
-        const dataJson = await response.json();
-          data.value = dataJson.map((item) => {
-            let parsedButtons;
-            if (item.buttons && typeof item.buttons === 'string') {
-              try {
-                parsedButtons = JSON.parse(item.buttons);
-              } catch (e) {
-                console.error("Failed to parse buttons for item:", item, e);
-                parsedButtons = [];
-              }
-            } else {
-              parsedButtons = [];
-            }
-            return {
-              ...item,
-              newRedirectKey: item.redirectKey,
-              buttons: parsedButtons,
-            };
-          });
-      } catch (err) {
-          ElMessage.error("Error fetching data: " + err.message)
-      } finally {
-        loading.value = false;
-      }
+    const isAdmin = computed(() => userRole.value === 'admin');
+
+    const handleMenuSelect = (index) => {
+      activeMenu.value = index;
     };
-
-    const handleRowClick = (row) => {
-      selectedItem.value = { ...row, buttons: [...row.buttons] };
-      showEditModal.value = true;
-    };
-
-
-    const closeEditModal = () => {
-      showEditModal.value = false;
-      selectedItem.value = {};
-    };
-
-    const closeCreateModal = () => {
-      showCreateModal.value = false;
-      newItem.value = { buttons: [] };
-    };
-
-    const openCreateModal = () => {
-      showCreateModal.value = true;
-    };
-
-
-    const updateSelectedItem = (updatedItem) => {
-      selectedItem.value = updatedItem;
-    };
-
-    const updateNewItem = (updatedItem) => {
-        newItem.value = updatedItem;
-    };
-
-    const updateItem = async () => {
-      try {
-         const updatedItem = {
-            ...selectedItem.value,
-             buttons: JSON.stringify(selectedItem.value.buttons)
-         }
-        const response = await fetch(`/api/admin/data/${selectedItem.value.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-          },
-          body: JSON.stringify(updatedItem),
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          error.value = { type: 'error', message: errorData.message || 'Failed to update item' };
-          return;
-        }
-        await fetchData();
-        closeEditModal();
-        ElMessage.success('Item updated successfully!');
-      } catch (err) {
-          ElMessage.error('Error updating item: ' + err.message);
-      }
-    };
-
-    const deleteItem = async () => {
-      try {
-        const response = await fetch(`/api/admin/data/${selectedItem.value.id}`, {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-          },
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          error.value = { type: 'error', message: errorData.message || 'Failed to delete item' };
-          return;
-        }
-        await fetchData();
-        closeEditModal();
-        ElMessage.success('Item deleted successfully!');
-      } catch (err) {
-          ElMessage.error('Error deleting item: ' + err.message);
-      }
-    };
-
-
-    const createItem = async () => {
-      try {
-        const newItemWithButtons = {
-          ...newItem.value,
-            buttons: JSON.stringify(newItem.value.buttons),
-        };
-        const response = await fetch('/api/admin/data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-          },
-          body: JSON.stringify(newItemWithButtons),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          error.value = { type: 'error', message: errorData.message || 'Failed to create item' };
-          return;
-        }
-        await fetchData();
-        closeCreateModal();
-        ElMessage.success('Item created successfully!');
-      } catch (err) {
-          ElMessage.error('Error creating item: ' + err.message);
-      }
-    };
-
-    const updateRedirectKey = async () => {
-      try {
-        const response = await fetch(`/api/admin/data/update-redirect-key/${selectedItem.value.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('authToken')}`,
-          },
-          body: JSON.stringify({ newRedirectKey: selectedItem.value.newRedirectKey }),
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          error.value = { type: 'error', message: errorData.message || 'Failed to update redirect key' };
-          return;
-        }
-        await fetchData();
-        closeEditModal();
-        ElMessage.success('Redirect key updated successfully!');
-      } catch (err) {
-          ElMessage.error('Error updating redirect key: ' + err.message);
-      }
-    };
-
 
     const logout = () => {
       localStorage.removeItem('authToken');
-      window.location.href = '/login';
+      window.location.href = '/admin/login';
     };
 
-    onMounted(fetchData);
+    const fetchUserInfo = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          window.location.href = '/admin/login';
+          return;
+        }
+
+        // Decode JWT to get user info
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        currentUser.value = payload.username;
+        userRole.value = payload.role || 'user';
+      } catch (error) {
+        console.error('Failed to fetch user info:', error);
+        logout();
+      }
+    };
+
+    onMounted(() => {
+      fetchUserInfo();
+    });
 
     return {
-      data,
-      error,
-      loading,
-      showEditModal,
-      showCreateModal,
-      selectedItem,
-      newItem,
-      handleRowClick,
-      closeEditModal,
-      closeCreateModal,
-      openCreateModal,
-      updateItem,
-      deleteItem,
-      createItem,
-      updateRedirectKey,
+      activeMenu,
+      currentUser,
+      userRole,
+      isAdmin,
+      handleMenuSelect,
       logout,
-      updateSelectedItem,
-      updateNewItem,
-      uploadUrl,
     };
   },
 };
@@ -275,8 +132,38 @@ export default {
 
 <style scoped>
 .admin-page {
-  background-color: #ffffff;
-  min-height: 100vh;
   padding: 20px;
+  background-color: #f5f7fa;
+  min-height: 100vh;
+}
+
+.nav-card {
+  position: sticky;
+  top: 20px;
+}
+
+.nav-card h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  text-align: center;
+  color: #409eff;
+}
+
+.user-info {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #ebeef5;
+  text-align: center;
+}
+
+.user-info p {
+  margin: 10px 0;
+  color: #606266;
+  font-size: 14px;
+}
+
+.user-info .el-button {
+  width: 100%;
+  margin-top: 10px;
 }
 </style>

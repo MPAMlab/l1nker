@@ -13,21 +13,30 @@ export async function handleAdminData(request: Request, pathname: string, env: E
   const token = authHeader.substring(7);
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET_KEY));
-    const { managedProjects, userId, username } = payload as {
+    const { managedProjects, userId, username, role } = payload as {
       managedProjects: string;
       userId: number;
       username: string;
+      role?: string;
     };
     (request as AuthorizedRequest).managedProjects = managedProjects;
     (request as AuthorizedRequest).userId = userId;
     (request as AuthorizedRequest).username = username;
+    (request as AuthorizedRequest).role = role;
     if (managedProjects !== '*') {
-      //查询用户可以管理的项目列表
-      const query = `SELECT * FROM landing_page WHERE redirectKey IN (${managedProjects
-        .split(',')
-        .map((key) => `'${key}'`)
-        .join(',')})`;
-      const { results } = await env?.l1nker_db?.prepare(query).all();
+      //查询用户可以管理的项目列表 - 使用参数化查询防止SQL注入
+      const projectKeys = managedProjects.split(',').map(key => key.trim()).filter(key => key);
+      if (projectKeys.length === 0) {
+        return new Response(JSON.stringify({ message: 'Unauthorized' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      // 构建参数化查询
+      const placeholders = projectKeys.map(() => '?').join(',');
+      const query = `SELECT * FROM landing_page WHERE redirectKey IN (${placeholders})`;
+      const { results } = await env?.l1nker_db?.prepare(query).bind(...projectKeys).all();
       if (!results) {
         return new Response(JSON.stringify({ error: 'l1nker_db binding failed.' }), {
           status: 500,
@@ -88,28 +97,49 @@ export async function handleAdminData(request: Request, pathname: string, env: E
       if ((request as AuthorizedRequest).managedProjects === '*') {
         query = `SELECT * FROM landing_page`;
       } else {
-        query = `SELECT * FROM landing_page WHERE redirectKey IN (${(request as AuthorizedRequest).managedProjects
-          .map((item) => `'${item.redirectKey}'`)
-          .join(',')})`;
+        // 使用参数化查询防止SQL注入
+        const managedProjects = (request as AuthorizedRequest).managedProjects as Array<{ redirectKey: string }>;
+        const projectKeys = managedProjects.map(item => item.redirectKey);
+        if (projectKeys.length > 0) {
+          const placeholders = projectKeys.map(() => '?').join(',');
+          query = `SELECT * FROM landing_page WHERE redirectKey IN (${placeholders})`;
+          const { results } = await env?.l1nker_db?.prepare(query).bind(...projectKeys).all();
+          if (!results) {
+            return new Response(JSON.stringify({ error: 'l1nker_db binding failed.' }), {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+          return new Response(JSON.stringify(results), {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+        } else {
+          return new Response(JSON.stringify([]), {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+        }
       }
-      const { results } = await env?.l1nker_db?.prepare(query).all();
-      if (!results) {
-        return new Response(JSON.stringify({ error: 'l1nker_db binding failed.' }), {
-          status: 500,
+    }
+    if (request.method === 'POST') {
+      // Check if user has permission to create landing pages
+      const userRole = (request as AuthorizedRequest).role;
+      const managedProjects = (request as AuthorizedRequest).managedProjects;
+
+      if (userRole !== 'admin' && managedProjects === '*') {
+        return new Response(JSON.stringify({ message: 'Unauthorized: Invalid permissions' }), {
+          status: 403,
           headers: { 'Content-Type': 'application/json' },
         });
       }
-      return new Response(JSON.stringify(results), {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-    }
-    if (request.method === 'POST') {
+
       const newItem = await request.json() as any;
       const query = `
-                INSERT INTO landing_page (redirectKey, profileImageUrl, title, subtitle, buttons, buttonColor, faviconUrl, pageTitle)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+                INSERT INTO landing_page (redirectKey, profileImageUrl, title, subtitle, buttons, buttonColor, faviconUrl, pageTitle, show_artist_section, artist_profile_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             `;
       const dbResult = await env?.l1nker_db
         ?.prepare(query)
@@ -122,6 +152,8 @@ export async function handleAdminData(request: Request, pathname: string, env: E
           newItem.buttonColor,
           newItem.faviconUrl,
           newItem.pageTitle,
+          newItem.show_artist_section || 0,
+          newItem.artist_profile_id || null,
         )
         .run();
       if (!dbResult) {
@@ -220,7 +252,9 @@ export async function handleAdminData(request: Request, pathname: string, env: E
                     buttons = ?,
                     buttonColor = ?,
                     faviconUrl = ?,
-                    pageTitle = ?
+                    pageTitle = ?,
+                    show_artist_section = ?,
+                    artist_profile_id = ?
                 WHERE id = ?;
             `;
       const dbResult = await env?.l1nker_db
@@ -233,6 +267,8 @@ export async function handleAdminData(request: Request, pathname: string, env: E
           updatedItem.buttonColor,
           updatedItem.faviconUrl,
           updatedItem.pageTitle,
+          updatedItem.show_artist_section || 0,
+          updatedItem.artist_profile_id || null,
           id,
         )
         .run();

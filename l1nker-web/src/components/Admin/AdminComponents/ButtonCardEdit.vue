@@ -12,7 +12,20 @@
         style="width: 100px; height: 100px; margin-right: 10px;"
         :src="item.profileImageUrl ? `https://sp.srt.pub/images/${item.profileImageUrl}` : ''"
         fit="cover"
-      />
+      >
+        <template #error>
+          <div class="image-placeholder">
+            <el-icon><Picture /></el-icon>
+            <span>No Image</span>
+          </div>
+        </template>
+        <template #placeholder>
+          <div class="image-placeholder">
+            <el-icon class="is-loading"><Loading /></el-icon>
+            <span>Loading...</span>
+          </div>
+        </template>
+      </el-image>
       <el-upload
         class="upload-demo"
         :action="uploadUrl"
@@ -117,7 +130,18 @@
         style="width: 32px; height: 32px; margin-right: 10px;"
         :src="item.faviconUrl ? `https://sp.srt.pub/images/${item.faviconUrl}` : ''"
         fit="cover"
-      />
+      >
+        <template #error>
+          <div class="favicon-placeholder">
+            <el-icon><Picture /></el-icon>
+          </div>
+        </template>
+        <template #placeholder>
+          <div class="favicon-placeholder">
+            <el-icon class="is-loading"><Loading /></el-icon>
+          </div>
+        </template>
+      </el-image>
       <el-upload
         class="upload-demo"
         :action="uploadUrl"
@@ -134,13 +158,44 @@
     <el-form-item label="Page Title">
       <el-input v-model="item.pageTitle" />
     </el-form-item>
+
+    <!-- Artist Section -->
+    <el-divider content-position="left">Artist Section</el-divider>
+    <el-form-item label="Show Artist Section">
+      <el-switch v-model="item.show_artist_section" />
+    </el-form-item>
+
+    <template v-if="item.show_artist_section">
+      <el-form-item label="Select Artist Profile">
+        <el-select v-model="item.artist_profile_id" placeholder="Select an artist profile" clearable>
+          <el-option
+            v-for="artist in availableArtists"
+            :key="artist.id"
+            :label="artist.artist_name"
+            :value="artist.id"
+          />
+        </el-select>
+        <el-button type="primary" size="small" @click="createArtistProfile" style="margin-left: 10px;">
+          Create New Artist
+        </el-button>
+      </el-form-item>
+
+      <div v-if="item.artist_profile_id && selectedArtist" class="artist-preview">
+        <el-alert
+          :title="`Selected: ${selectedArtist.artist_name}`"
+          type="info"
+          :description="selectedArtist.main_profile"
+          show-icon
+        />
+      </div>
+    </template>
   </el-form>
 </template>
 
 <script>
-import { ref, defineComponent, onMounted, watchEffect } from 'vue';
+import { ref, defineComponent, onMounted, watchEffect, watch } from 'vue';
 import draggable from 'vuedraggable';
-import { Rank, Delete, Plus, Upload } from '@element-plus/icons-vue';
+import { Rank, Delete, Plus, Upload, Picture, Loading } from '@element-plus/icons-vue';
 
 export default defineComponent({
   components: {
@@ -149,6 +204,8 @@ export default defineComponent({
     Delete,
     Plus,
     Upload,
+    Picture,
+    Loading,
   },
   props: {
     item: {
@@ -172,9 +229,36 @@ export default defineComponent({
     const uploadHeaders = ref({
       Authorization: `Bearer ${localStorage.getItem('authToken')}`
     });
+    const availableArtists = ref([]);
+    const selectedArtist = ref(null);
 
     // Initialize from props
     const item = ref(props.item || {});
+
+    // Fetch available artists
+    const fetchArtists = async () => {
+      try {
+        const response = await fetch('/api/admin/artists', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+        if (response.ok) {
+          availableArtists.value = await response.json();
+        }
+      } catch (error) {
+        console.error('Failed to fetch artists:', error);
+      }
+    };
+
+    // Watch for artist profile changes
+    watch(() => item.value.artist_profile_id, (newId) => {
+      if (newId) {
+        selectedArtist.value = availableArtists.value.find(a => a.id === newId);
+      } else {
+        selectedArtist.value = null;
+      }
+    });
 
     // Update local buttons when item changes
     watchEffect(() => {
@@ -270,6 +354,12 @@ export default defineComponent({
       return true;
     };
 
+    const createArtistProfile = () => {
+      // This will open the artist profile creation dialog
+      // For now, we'll emit an event to the parent
+      emit('create-artist');
+    };
+
     return {
       localButtons,
       addButton,
@@ -285,7 +375,15 @@ export default defineComponent({
       drag,
       item,
       uploadHeaders,
+      availableArtists,
+      selectedArtist,
+      fetchArtists,
+      createArtistProfile,
     };
+
+    onMounted(() => {
+      fetchArtists();
+    });
   },
 });
 </script>
@@ -320,5 +418,44 @@ export default defineComponent({
 .flip-list-leave-to {
   opacity: 0;
   transform: translateX(30px);
+}
+
+.image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f7fa;
+  color: #909399;
+  font-size: 12px;
+}
+
+.image-placeholder .el-icon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.favicon-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f7fa;
+  color: #909399;
+}
+
+.favicon-placeholder .el-icon {
+  font-size: 16px;
+}
+
+.artist-preview {
+  margin-top: 16px;
+}
+
+.artist-preview .el-alert {
+  margin-bottom: 0;
 }
 </style>

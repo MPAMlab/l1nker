@@ -3,4 +3,5 @@ export interface AuthorizedRequest extends Request {
     managedProjects: string | Array<{ redirectKey: string }>;
     userId: number;
     username: string;
+    role?: string;
 }

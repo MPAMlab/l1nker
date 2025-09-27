@@ -36,14 +36,25 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
         }), env);
     }
     const token = authHeader.substring(7);
+    let payload;
     try {
-        await jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET_KEY));
+        const result = await jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET_KEY));
+        payload = result.payload;
     } catch (error) {
         return addCorsHeaders(new Response(JSON.stringify({ message: 'Unauthorized' }), {
             status: 401,
             headers: { 'Content-Type': 'application/json' },
         }), env);
     }
+
+    // Check if user has upload permissions
+    const { role, managedProjects } = payload as {
+        role?: string;
+        managedProjects: string;
+    };
+
+    // All authenticated users can upload images, but we log the action
+    console.log(`Upload attempt by user with role: ${role || 'user'}, managed projects: ${managedProjects}`);
 
     try {
         // 2. 获取 FormData 和文件 (保持不变)
