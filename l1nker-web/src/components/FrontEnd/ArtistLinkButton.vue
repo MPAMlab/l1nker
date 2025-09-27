@@ -23,7 +23,7 @@ import {
 export default defineComponent({
   name: 'ArtistLinkButton',
   components: {
-    Link, VideoPlay, MusicNote, Picture, ChatDotRound,
+    Link, VideoPlay, Headset, Picture, ChatDotRound,
     Shop, MoreFilled, Trophy, Star
   },
   props: {
