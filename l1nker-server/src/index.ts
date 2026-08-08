@@ -1,6 +1,4 @@
 import { handleApiData } from './handlers/apiData.ts';
-import { handleLogin } from './handlers/login.ts';
-import { handleRegister } from './handlers/register.ts';
 import { handleAdminData } from './handlers/adminData.ts';
 import { handleUpload } from './handlers/upload.ts';
 import { handleImageRequest } from './handlers/imageRequest.ts';
@@ -10,6 +8,7 @@ import { handleArtistPage } from './handlers/artistPage.ts';
 import { handleAdminArtists } from './handlers/adminArtists.ts';
 import { handleUserManagement } from './handlers/userManagement.ts';
 import { handleChangePassword } from './handlers/changePassword.ts';
+import { handleMe } from './handlers/me.ts';
 import { handleDebug } from './handlers/debug.ts';
 import { Env } from './types'; // Import the Env type
 export default {
@@ -25,11 +24,8 @@ export default {
             const key = pathname.split('/').pop() || '';
             return handleArtistPage(key, env);
         }
-        if (pathname === '/api/login' && request.method === 'POST') {
-            return handleLogin(request, env);
-        }
-        if (pathname === '/api/register' && request.method === 'POST') {
-            return handleRegister(request, env);
+        if (pathname === '/api/me' && request.method === 'GET') {
+            return handleMe(request, env);
         }
         if (pathname.startsWith('/api/admin/data')) {
             return handleAdminData(request, pathname, env);

@@ -50,7 +50,7 @@ export async function handleImageRequest(request: Request, env: Env): Promise<Re
 
     } catch (e) {
         console.error("Error fetching image:", e);
-          return addCorsHeaders(new Response(JSON.stringify({ message: "Failed to fetch image", error: e.message }), {
+          return addCorsHeaders(new Response(JSON.stringify({ message: "Failed to fetch image", error: e instanceof Error ? e.message : String(e) }), {
                 status: 500,
                 headers: { 'Content-Type': 'application/json' },
             }), env);

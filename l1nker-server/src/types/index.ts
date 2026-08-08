@@ -1,10 +1,12 @@
-import { D1Database, R2Bucket } from "@cloudflare/workers-types";
+import { D1Database, R2Bucket, KVNamespace } from "@cloudflare/workers-types";
 
 export interface Env {
     l1nker_db: D1Database;
     JWT_SECRET_KEY: string;
     MY_R2_BUCKET: R2Bucket;
     CORS_ALLOWED_ORIGINS: string[];
+    // Shared with auth.mpam-lab.xyz — used to validate OAuth access tokens.
+    OAUTH_KV: KVNamespace;
 }
 
 export interface ArtistProfile {

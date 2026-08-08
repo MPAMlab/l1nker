@@ -1,35 +1,19 @@
-import { jwtVerify } from 'jose';
 import { Env } from '../types';
 import { AuthorizedRequest } from '../types/authorizedRequest';
+import { validatePermissions } from '../utils/permissions';
 
 export async function handleAdminArtists(request: Request, env: Env): Promise<Response> {
-    // Authentication check
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-        });
+    // Authentication check (IDaaS OAuth)
+    const authResult = await validatePermissions(request, env);
+    if (!authResult.authorized) {
+        return authResult.error!;
     }
-    const token = authHeader.substring(7);
 
-    try {
-        const { payload } = await jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET_KEY));
-        const { managedProjects, userId, username, role } = payload as {
-            managedProjects: string;
-            userId: number;
-            username: string;
-            role: string;
-        };
+    const userId = (request as AuthorizedRequest).userId;
+    const role = (request as AuthorizedRequest).role || 'user';
 
-        if (request.method === 'GET') {
-            return handleGetArtists(env, userId, role);
-        }
-    } catch (error) {
-        return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-        });
+    if (request.method === 'GET') {
+        return handleGetArtists(env, userId, role);
     }
 
     return new Response(JSON.stringify({ message: 'Method not allowed' }), {

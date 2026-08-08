@@ -54,7 +54,7 @@ async function handleGetUsers(request: Request, env: Env): Promise<Response> {
       });
     }
 
-    const { results, success, error } = await env.l1nker_db.prepare(query).all();
+    const { results, success, error } = await env.l1nker_db.prepare(query).all<any>();
 
     if (!success || error) {
       console.error('Database query failed:', error);
@@ -65,7 +65,7 @@ async function handleGetUsers(request: Request, env: Env): Promise<Response> {
     }
 
     // Remove password hashes from response
-    const users = results.map(user => ({
+    const users = results.map((user: any) => ({
       id: user.id,
       username: user.username,
       email: user.email,
@@ -88,7 +88,7 @@ async function handleGetUsers(request: Request, env: Env): Promise<Response> {
 
 async function handleCreateUser(request: Request, env: Env): Promise<Response> {
   try {
-    const { username, email, password, role, managedProjects } = await request.json();
+    const { username, email, password, role, managedProjects } = await request.json() as { username?: string; email?: string; password?: string; role?: string; managedProjects?: string };
 
     // Validate required fields
     if (!username || !email || !password || !role) {
@@ -174,7 +174,7 @@ async function handleCreateUser(request: Request, env: Env): Promise<Response> {
 async function handleUpdateUser(request: Request, pathname: string, env: Env): Promise<Response> {
   try {
     const userId = pathname.split('/').pop();
-    const { email, role, managedProjects, password } = await request.json();
+    const { email, role, managedProjects, password } = await request.json() as { email?: string; role?: string; managedProjects?: string; password?: string };
 
     // Check if user exists
     const existingUser = await env.l1nker_db
@@ -258,7 +258,7 @@ async function handleDeleteUser(request: Request, pathname: string, env: Env): P
 
     // Prevent deleting self
     const currentUser = (request as AuthorizedRequest).userId;
-    if (parseInt(userId) === currentUser) {
+    if (parseInt(userId || '') === currentUser) {
       return new Response(JSON.stringify({ message: 'Cannot delete your own account' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },

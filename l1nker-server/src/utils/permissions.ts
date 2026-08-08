@@ -1,6 +1,6 @@
-import { jwtVerify } from 'jose';
 import { Env } from '../types';
 import { AuthorizedRequest } from '../types/authorizedRequest';
+import { authenticateOAuth } from './oauth';
 
 export interface PermissionCheckOptions {
   requireAdmin?: boolean;
@@ -15,13 +15,21 @@ export interface JwtPayload {
   managedProjects: string;
 }
 
+interface L1nkerUserRow {
+  id: number;
+  username: string;
+  role?: string;
+  managed_projects: string;
+}
+
 export async function validatePermissions(
   request: Request,
   env: Env,
   options: PermissionCheckOptions = {}
 ): Promise<{ authorized: boolean; error?: Response; payload?: JwtPayload }> {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  // 1. Validate the IDaaS OAuth token (auth.mpam-lab.xyz).
+  const auth = await authenticateOAuth(request, env);
+  if (!auth) {
     return {
       authorized: false,
       error: new Response(JSON.stringify({ message: 'Unauthorized' }), {
@@ -31,20 +39,32 @@ export async function validatePermissions(
     };
   }
 
-  const token = authHeader.substring(7);
-  let payload;
+  // 2. Map the IDaaS username to an l1nker account (roles/permissions live here).
+  let user: L1nkerUserRow | null = null;
   try {
-    const result = await jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET_KEY));
-    payload = result.payload as JwtPayload;
+    user = await env.l1nker_db
+      .prepare('SELECT id, username, role, managed_projects FROM l1nker_user WHERE username = ?')
+      .bind(auth.username)
+      .first<L1nkerUserRow>();
   } catch (error) {
+    console.error('Failed to look up l1nker user:', error);
+  }
+  if (!user) {
     return {
       authorized: false,
-      error: new Response(JSON.stringify({ message: 'Unauthorized' }), {
-        status: 401,
+      error: new Response(JSON.stringify({ message: 'No l1nker account for this user' }), {
+        status: 403,
         headers: { 'Content-Type': 'application/json' },
       }),
     };
   }
+
+  const payload: JwtPayload = {
+    userId: user.id,
+    username: user.username,
+    role: user.role || 'user',
+    managedProjects: user.managed_projects,
+  };
 
   // Check role-based permissions
   if (options.requireAdmin && payload.role !== 'admin') {

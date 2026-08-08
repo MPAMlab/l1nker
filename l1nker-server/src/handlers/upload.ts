@@ -1,5 +1,6 @@
-import { jwtVerify } from 'jose';
 import { Env } from '../types';
+import { AuthorizedRequest } from '../types/authorizedRequest';
+import { validatePermissions } from '../utils/permissions';
 
 // Add CORS headers to response
 function addCorsHeaders(response: Response, env: Env): Response {
@@ -28,33 +29,15 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
         return addCorsHeaders(new Response(null, { status: 200 }), env);
     }
 
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return addCorsHeaders(new Response(JSON.stringify({ message: 'Unauthorized' }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-        }), env);
+    const authResult = await validatePermissions(request, env);
+    if (!authResult.authorized) {
+        return addCorsHeaders(authResult.error!, env);
     }
-    const token = authHeader.substring(7);
-    let payload;
-    try {
-        const result = await jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET_KEY));
-        payload = result.payload;
-    } catch (error) {
-        return addCorsHeaders(new Response(JSON.stringify({ message: 'Unauthorized' }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-        }), env);
-    }
-
-    // Check if user has upload permissions
-    const { role, managedProjects } = payload as {
-        role?: string;
-        managedProjects: string;
-    };
 
     // All authenticated users can upload images, but we log the action
-    console.log(`Upload attempt by user with role: ${role || 'user'}, managed projects: ${managedProjects}`);
+    const role = (request as AuthorizedRequest).role || 'user';
+    const managedProjects = (request as AuthorizedRequest).managedProjects;
+    console.log(`Upload attempt by user with role: ${role}, managed projects: ${typeof managedProjects === 'string' ? managedProjects : '*'}`);
 
     try {
         // 2. 获取 FormData 和文件 (保持不变)
@@ -91,7 +74,7 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
 
     } catch (e) {
          console.error("Error uploading file:", e); // 记录错误信息，方便调试
-        return addCorsHeaders(new Response(JSON.stringify({ message: "Failed to upload file", error: e.message }), {
+        return addCorsHeaders(new Response(JSON.stringify({ message: "Failed to upload file", error: e instanceof Error ? e.message : String(e) }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' },
         }), env);

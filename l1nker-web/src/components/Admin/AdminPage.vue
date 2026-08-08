@@ -145,6 +145,8 @@ export default {
 
     const logout = () => {
       localStorage.removeItem('authToken');
+      localStorage.removeItem('l1nker.refresh');
+      localStorage.removeItem('l1nker.expires');
       window.location.href = '/login';
     };
 
@@ -156,10 +158,17 @@ export default {
           return;
         }
 
-        // Decode JWT to get user info
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        currentUser.value = payload.username;
-        userRole.value = payload.role || 'user';
+        // Fetch the authenticated user's info from the server (IDaaS-backed).
+        const res = await fetch('/api/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        const data = await res.json();
+        currentUser.value = data.username;
+        userRole.value = data.role || 'user';
       } catch (error) {
         console.error('Failed to fetch user info:', error);
         window.location.href = '/login';

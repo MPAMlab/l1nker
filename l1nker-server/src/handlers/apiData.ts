@@ -35,7 +35,7 @@ export async function handleApiData(key: string, env: Env): Promise<Response> {
       profileImageUrl: data.profileImageUrl,
       title: data.title,
       subtitle: data.subtitle,
-      buttons: JSON.parse(data.buttons),
+      buttons: JSON.parse(data.buttons as string),
       buttonColor: data.buttonColor,
       faviconUrl: data.faviconUrl,
       pageTitle: data.pageTitle,
@@ -54,7 +54,7 @@ export async function handleApiData(key: string, env: Env): Promise<Response> {
       },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });

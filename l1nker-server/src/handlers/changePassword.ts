@@ -1,30 +1,15 @@
-import { jwtVerify } from 'jose';
 import { Env } from '../types';
 import { AuthorizedRequest } from '../types/authorizedRequest';
+import { validatePermissions } from '../utils/permissions';
 import { hashPassword, verifyPassword } from '../utils/auth';
 
 export async function handleChangePassword(request: Request, env: Env): Promise<Response> {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  const authResult = await validatePermissions(request, env);
+  if (!authResult.authorized) {
+    return authResult.error!;
   }
 
-  const token = authHeader.substring(7);
-  let payload;
-  try {
-    const result = await jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET_KEY));
-    payload = result.payload;
-  } catch (error) {
-    return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  const { userId } = payload as { userId: number; username: string };
+  const userId = (request as AuthorizedRequest).userId;
 
   if (request.method !== 'POST') {
     return new Response(JSON.stringify({ message: 'Method not allowed' }), {
@@ -34,7 +19,7 @@ export async function handleChangePassword(request: Request, env: Env): Promise<
   }
 
   try {
-    const { currentPassword, newPassword } = await request.json();
+    const { currentPassword, newPassword } = await request.json() as { currentPassword: string; newPassword: string };
 
     // Validate required fields
     if (!currentPassword || !newPassword) {
@@ -54,7 +39,7 @@ export async function handleChangePassword(request: Request, env: Env): Promise<
 
     // Get current user
     const user = await env.l1nker_db
-      .prepare('SELECT password_hash FROM l1nker_user WHERE id = ?')
+      .prepare('SELECT password FROM l1nker_user WHERE id = ?')
       .bind(userId)
       .first();
 
@@ -66,7 +51,7 @@ export async function handleChangePassword(request: Request, env: Env): Promise<
     }
 
     // Verify current password using PBKDF2
-    const passwordMatch = await verifyPassword(currentPassword, user.password_hash, env);
+    const passwordMatch = await verifyPassword(currentPassword, user.password as string, env);
     if (!passwordMatch) {
       return new Response(JSON.stringify({ message: 'Current password is incorrect' }), {
         status: 400,
@@ -79,7 +64,7 @@ export async function handleChangePassword(request: Request, env: Env): Promise<
 
     // Update password
     const result = await env.l1nker_db
-      .prepare('UPDATE l1nker_user SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .prepare('UPDATE l1nker_user SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
       .bind(newPasswordHash, userId)
       .run();
 

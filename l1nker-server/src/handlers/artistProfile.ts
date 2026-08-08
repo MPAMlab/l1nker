@@ -1,46 +1,26 @@
-import { jwtVerify } from 'jose';
 import { Env, ArtistProfile, ArtistLink } from '../types';
 import { AuthorizedRequest } from '../types/authorizedRequest';
+import { validatePermissions } from '../utils/permissions';
 
 export async function handleArtistProfile(request: Request, pathname: string, env: Env): Promise<Response> {
-    // Authentication check
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-        });
+    // Authentication check (IDaaS OAuth)
+    const authResult = await validatePermissions(request, env);
+    if (!authResult.authorized) {
+        return authResult.error!;
     }
-    const token = authHeader.substring(7);
+    const req = request as AuthorizedRequest;
+    const userId = req.userId;
+    const role = req.role || 'user';
 
-    try {
-        const { payload } = await jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET_KEY));
-        const { managedProjects, userId, username, role } = payload as {
-            managedProjects: string;
-            userId: number;
-            username: string;
-            role: string;
-        };
-        (request as AuthorizedRequest).managedProjects = managedProjects;
-        (request as AuthorizedRequest).userId = userId;
-        (request as AuthorizedRequest).username = username;
-        (request as AuthorizedRequest).role = role;
-
-        // Handle different methods
-        if (request.method === 'GET') {
-            return handleGetArtistProfile(request, pathname, env, userId, role);
-        } else if (request.method === 'POST') {
-            return handleCreateArtistProfile(request, env, userId);
-        } else if (request.method === 'PUT') {
-            return handleUpdateArtistProfile(request, pathname, env, userId, role);
-        } else if (request.method === 'DELETE') {
-            return handleDeleteArtistProfile(request, pathname, env, userId, role);
-        }
-    } catch (error) {
-        return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-        });
+    // Handle different methods
+    if (request.method === 'GET') {
+        return handleGetArtistProfile(request, pathname, env, userId, role);
+    } else if (request.method === 'POST') {
+        return handleCreateArtistProfile(request, env, userId);
+    } else if (request.method === 'PUT') {
+        return handleUpdateArtistProfile(request, pathname, env, userId, role);
+    } else if (request.method === 'DELETE') {
+        return handleDeleteArtistProfile(request, pathname, env, userId, role);
     }
 
     return new Response(JSON.stringify({ message: 'Method not allowed' }), {
@@ -346,32 +326,21 @@ async function handleDeleteArtistProfile(request: Request, pathname: string, env
 }
 
 export async function handleArtistLinks(request: Request, pathname: string, env: Env): Promise<Response> {
-    // Authentication check
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-        });
+    // Authentication check (IDaaS OAuth)
+    const authResult = await validatePermissions(request, env);
+    if (!authResult.authorized) {
+        return authResult.error!;
     }
-    const token = authHeader.substring(7);
+    const req = request as AuthorizedRequest;
+    const userId = req.userId;
+    const role = req.role || 'user';
 
-    try {
-        const { payload } = await jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET_KEY));
-        const { userId, role } = payload as { userId: number; role: string; };
-
-        if (request.method === 'POST') {
-            return handleCreateArtistLink(request, env, userId, role);
-        } else if (request.method === 'PUT') {
-            return handleUpdateArtistLink(request, env, userId, role);
-        } else if (request.method === 'DELETE') {
-            return handleDeleteArtistLink(request, pathname, env, userId, role);
-        }
-    } catch (error) {
-        return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-        });
+    if (request.method === 'POST') {
+        return handleCreateArtistLink(request, env, userId, role);
+    } else if (request.method === 'PUT') {
+        return handleUpdateArtistLink(request, pathname, env, userId, role);
+    } else if (request.method === 'DELETE') {
+        return handleDeleteArtistLink(request, pathname, env, userId, role);
     }
 
     return new Response(JSON.stringify({ message: 'Method not allowed' }), {
@@ -435,7 +404,7 @@ async function handleCreateArtistLink(request: Request, env: Env, userId: number
     }
 }
 
-async function handleUpdateArtistLink(request: Request, env: Env, userId: number, role: string): Promise<Response> {
+async function handleUpdateArtistLink(request: Request, pathname: string, env: Env, userId: number, role: string): Promise<Response> {
     try {
         const linkData: Partial<ArtistLink> = await request.json();
         const linkId = pathname.split('/').pop();

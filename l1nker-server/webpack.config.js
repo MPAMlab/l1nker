@@ -8,7 +8,10 @@ module.exports = {
     rules: [
       {
         test: /\.tsx?$/,
-        use: 'ts-loader',
+        use: {
+          loader: 'ts-loader',
+          options: { transpileOnly: true },
+        },
         exclude: /node_modules/,
       },
     ],
@@ -23,6 +26,7 @@ module.exports = {
    externals: {
         'mock-aws-s3': 'mock-aws-s3',
         'aws-sdk': 'aws-sdk',
-        'nock': 'nock'
+        'nock': 'nock',
+        'cloudflare:workers': 'commonjs2 cloudflare:workers'
     }
 };

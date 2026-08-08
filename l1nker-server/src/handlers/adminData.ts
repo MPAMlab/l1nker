@@ -1,30 +1,20 @@
-import { jwtVerify } from 'jose';
 import { Env } from '../types';
 import { AuthorizedRequest } from '../types/authorizedRequest';
+import { validatePermissions } from '../utils/permissions';
 
 export async function handleAdminData(request: Request, pathname: string, env: Env): Promise<Response> {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
+  const authResult = await validatePermissions(request, env);
+  if (!authResult.authorized) {
+    return authResult.error!;
   }
-  const token = authHeader.substring(7);
-  try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(env.JWT_SECRET_KEY));
-    const { managedProjects, userId, username, role } = payload as {
-      managedProjects: string;
-      userId: number;
-      username: string;
-      role?: string;
-    };
+  const { payload } = authResult;
+  const { managedProjects } = payload!;
     (request as AuthorizedRequest).managedProjects = managedProjects;
-    (request as AuthorizedRequest).userId = userId;
-    (request as AuthorizedRequest).username = username;
-    (request as AuthorizedRequest).role = role;
+    (request as AuthorizedRequest).username = payload!.username;
+    (request as AuthorizedRequest).userId = payload!.userId;
+    (request as AuthorizedRequest).role = payload!.role;
     if (managedProjects !== '*') {
-      //查询用户可以管理的项目列表 - 使用参数化查询防止SQL注入
+      //查询用户可以管理的项目列�?- 使用参数化查询防止SQL注入
       const projectKeys = managedProjects.split(',').map(key => key.trim()).filter(key => key);
       if (projectKeys.length === 0) {
         return new Response(JSON.stringify({ message: 'Unauthorized' }), {
@@ -33,17 +23,17 @@ export async function handleAdminData(request: Request, pathname: string, env: E
         });
       }
 
-      // 构建参数化查询
+      // 构建参数化查�?
       const placeholders = projectKeys.map(() => '?').join(',');
       const query = `SELECT * FROM landing_page WHERE redirectKey IN (${placeholders})`;
-      const { results } = await env?.l1nker_db?.prepare(query).bind(...projectKeys).all();
+      const { results } = await env?.l1nker_db?.prepare(query).bind(...projectKeys).all<{ redirectKey: string }>();
       if (!results) {
         return new Response(JSON.stringify({ error: 'l1nker_db binding failed.' }), {
           status: 500,
           headers: { 'Content-Type': 'application/json' },
         });
       }
-      //判断是否有权限
+      //判断是否有权�?
       if (!results || results.length === 0) {
         return new Response(JSON.stringify({ message: 'Unauthorized' }), {
           status: 403,
@@ -52,19 +42,13 @@ export async function handleAdminData(request: Request, pathname: string, env: E
       }
       (request as AuthorizedRequest).managedProjects = results;
     }
-  } catch (error) {
-    return new Response(JSON.stringify({ message: 'Unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
 
     // 如果验证通过，则继续处理请求
   // 数据库查询和更新代码
   try {
     if (request.method === 'GET') {
       let query;
-      let results;
+      let results: any[] = [];
       if (pathname.includes('/api/admin/data/')) {
         const id = pathname.split('/').pop() || '';
         const existingItem = await env?.l1nker_db
@@ -77,7 +61,7 @@ export async function handleAdminData(request: Request, pathname: string, env: E
             headers: { 'Content-Type': 'application/json' },
           });
         }
-        //确保只有管理员或者有权限的用户才能获取
+        //确保只有管理员或者有权限的用户才能获�?
         if (
           (request as AuthorizedRequest).managedProjects !== '*' &&
           !((request as AuthorizedRequest).managedProjects as Array<{ redirectKey: string }>).some(
@@ -97,7 +81,7 @@ export async function handleAdminData(request: Request, pathname: string, env: E
       }
       if ((request as AuthorizedRequest).managedProjects === '*') {
         query = `SELECT * FROM landing_page`;
-        const { results: allResults } = await env?.l1nker_db?.prepare(query).all();
+        const { results: allResults } = await env?.l1nker_db?.prepare(query).all<any>();
         if (!allResults) {
           return new Response(JSON.stringify({ error: 'l1nker_db binding failed.' }), {
             status: 500,
@@ -112,7 +96,7 @@ export async function handleAdminData(request: Request, pathname: string, env: E
         if (projectKeys.length > 0) {
           const placeholders = projectKeys.map(() => '?').join(',');
           query = `SELECT * FROM landing_page WHERE redirectKey IN (${placeholders})`;
-          const { results: filteredResults } = await env?.l1nker_db?.prepare(query).bind(...projectKeys).all();
+          const { results: filteredResults } = await env?.l1nker_db?.prepare(query).bind(...projectKeys).all<any>();
           if (!filteredResults) {
             return new Response(JSON.stringify({ error: 'l1nker_db binding failed.' }), {
               status: 500,
@@ -178,7 +162,7 @@ export async function handleAdminData(request: Request, pathname: string, env: E
     const id = pathname.split('/').pop() || ''; // 从URL中获取id
     if (request.method === 'PUT') {
       const updatedItem = await request.json() as any;
-      const updateRedirectKeyPath = pathname.includes('update-redirect-key'); // 检查是否是更新 redirectKey 的请求
+      const updateRedirectKeyPath = pathname.includes('update-redirect-key'); // 检查是否是更新 redirectKey 的请�?
       if (updateRedirectKeyPath) {
         if (!updatedItem.newRedirectKey) {
           return new Response(JSON.stringify({ message: 'New redirectKey is required' }), {
@@ -228,7 +212,7 @@ export async function handleAdminData(request: Request, pathname: string, env: E
         });
       }
 
-      //确保只有管理员或者有权限的用户才能更新
+      //确保只有管理员或者有权限的用户才能更�?
       const existingItem = await env?.l1nker_db
         ?.prepare('SELECT * FROM landing_page WHERE id = ?')
         .bind(id)
@@ -303,7 +287,7 @@ export async function handleAdminData(request: Request, pathname: string, env: E
           headers: { 'Content-Type': 'application/json' },
         });
       }
-      //确保只有管理员或者有权限的用户才能删除
+      //确保只有管理员或者有权限的用户才能删�?
       if (
         (request as AuthorizedRequest).managedProjects !== '*' &&
         !((request as AuthorizedRequest).managedProjects as Array<{ redirectKey: string }>).some(
@@ -338,4 +322,9 @@ export async function handleAdminData(request: Request, pathname: string, env: E
       headers: { 'Content-Type': 'application/json' },
     });
   }
+
+  return new Response(JSON.stringify({ message: 'Method not allowed' }), {
+    status: 405,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }

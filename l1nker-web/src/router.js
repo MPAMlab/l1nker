@@ -5,9 +5,11 @@ import HomePage from './components/FrontEnd/HomePage.vue';
 import ArtistPage from './components/ArtistPage.vue';
 import AdminPage from './components/Admin/AdminPage.vue';
 import LoginPage from './components/Admin/LoginPage.vue';
+import OAuthCallback from './components/Admin/OAuthCallback.vue';
 import AdminItemList from './components/Admin/AdminComponents/ItemList.vue';
 import AdminItemEdit from './components/Admin/AdminComponents/ItemManagement.vue';
 import AdminUserManagement from './components/Admin/AdminComponents/UserManagement.vue';
+import { isAuthenticated, ensureFreshToken } from './utils/oauth';
 
 const routes = [
     { path: '/', component: Home },
@@ -31,6 +33,7 @@ const routes = [
         ],
     },
     { path: '/login', component: LoginPage },
+    { path: '/oauth/callback', component: OAuthCallback },
     { path: '/artist/:artistKey', component: ArtistPage },
     { path: '/:redirectKey', component: HomePage },
 ];
@@ -40,12 +43,20 @@ const router = createRouter({
     routes,
 });
 
-router.beforeEach((to, from, next) => {
-    const isAuthenticated = localStorage.getItem('authToken');
+router.beforeEach(async (to, from, next) => {
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
 
-    if (requiresAuth && !isAuthenticated) {
-        next('/login');
+    if (requiresAuth) {
+        if (!isAuthenticated()) {
+            next('/login');
+            return;
+        }
+        // Proactively refresh the token if it is near expiry.
+        const fresh = await ensureFreshToken();
+        if (!fresh) return; // ensureFreshToken redirects on failure
+        next();
+    } else if (to.path === '/login' && isAuthenticated()) {
+        next('/admin');
     } else {
         next();
     }
