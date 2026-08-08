@@ -4,6 +4,7 @@ import router from './router';
 import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css';
 import 'element-plus/theme-chalk/index.css';
+import './admin-theme.css';
 import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faPlay } from '@fortawesome/free-solid-svg-icons';

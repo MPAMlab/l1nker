@@ -1,0 +1,125 @@
+/* L1nker admin — zinc/monochrome theme matching the main MPAM admin panel.
+   Overrides Element Plus via CSS variables so all el-* components inherit the
+   look without per-component changes. */
+
+:root {
+  /* Monochrome primary (zinc-900) */
+  --el-color-primary: #18181b;
+  --el-color-primary-light-3: #3f3f46;
+  --el-color-primary-light-5: #52525b;
+  --el-color-primary-light-7: #d4d4d8;
+  --el-color-primary-light-8: #e4e4e7;
+  --el-color-primary-light-9: #fafafa;
+  --el-color-primary-dark-2: #09090b;
+  --el-color-success: #059669;
+  --el-color-danger: #dc2626;
+  --el-color-warning: #d97706;
+  --el-color-info: #71717a;
+
+  /* Sharp corners (no rounded) */
+  --el-border-radius-base: 0px;
+  --el-border-radius-small: 0px;
+  --el-border-radius-round: 0px;
+
+  /* Zinc borders */
+  --el-border-color: #e4e4e7;
+  --el-border-color-light: #e4e4e7;
+  --el-border-color-lighter: #f4f4f5;
+  --el-border-color-extra-light: #fafafa;
+
+  /* Text */
+  --el-text-color-primary: #18181b;
+  --el-text-color-regular: #3f3f46;
+  --el-text-color-secondary: #71717a;
+  --el-text-color-placeholder: #a1a1aa;
+
+  /* Surfaces */
+  --el-bg-color: #ffffff;
+  --el-bg-color-page: #fafafa;
+  --el-fill-color-blank: #ffffff;
+  --el-fill-color-light: #fafafa;
+  --el-fill-color-lighter: #f4f4f5;
+  --el-fill-color-extra-light: #fafafa;
+
+  --el-box-shadow-light: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --el-font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --el-font-size-base: 14px;
+}
+
+/* Cards */
+.el-card {
+  border: 1px solid #e4e4e7;
+  border-radius: 0;
+  box-shadow: none;
+}
+.el-card__header {
+  border-bottom: 1px solid #e4e4e7;
+  font-weight: 600;
+}
+
+/* Tables */
+.el-table {
+  --el-table-border-color: #e4e4e7;
+  --el-table-header-bg-color: #fafafa;
+  --el-table-header-text-color: #3f3f46;
+  --el-table-text-color: #18181b;
+  --el-table-row-hover-bg-color: #fafafa;
+  --el-table-tr-bg-color: #ffffff;
+  border: 1px solid #e4e4e7;
+}
+.el-table th.el-table__cell {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+/* Buttons */
+.el-button {
+  border-radius: 0;
+}
+.el-button--primary {
+  --el-button-bg-color: #18181b;
+  --el-button-border-color: #18181b;
+  --el-button-hover-bg-color: #27272a;
+  --el-button-hover-border-color: #27272a;
+  --el-button-active-bg-color: #09090b;
+  --el-button-active-border-color: #09090b;
+}
+
+/* Inputs / textareas / selects */
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper {
+  border-radius: 0;
+  box-shadow: 0 0 0 1px #d4d4d8 inset;
+}
+.el-input__wrapper:hover,
+.el-textarea__inner:hover,
+.el-select__wrapper:hover {
+  box-shadow: 0 0 0 1px #a1a1aa inset;
+}
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px #18181b inset;
+}
+
+/* Dialogs / drawers */
+.el-dialog {
+  border-radius: 0;
+  border: 1px solid #e4e4e7;
+}
+.el-dialog__title {
+  font-weight: 700;
+}
+
+/* Message / notification */
+.el-message {
+  border-radius: 0;
+  border: 1px solid #e4e4e7;
+}
+
+/* Dropdown */
+.el-popper {
+  border-radius: 0;
+}

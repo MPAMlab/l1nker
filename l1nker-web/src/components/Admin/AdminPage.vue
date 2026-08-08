@@ -1,102 +1,61 @@
 <template>
-  <div class="admin-page">
-    <!-- 顶部导航栏 -->
-    <el-header class="admin-header">
-      <div class="header-content">
-        <div class="header-left">
-          <h2>L1nker 管理后台</h2>
-        </div>
-        <div class="header-right">
-          <el-breadcrumb separator="/">
-            <el-breadcrumb-item :to="{ path: '/admin' }">首页</el-breadcrumb-item>
-            <el-breadcrumb-item>{{ getCurrentPageName() }}</el-breadcrumb-item>
-          </el-breadcrumb>
-          <el-dropdown @command="handleDropdownCommand">
-            <span class="user-dropdown">
-              {{ currentUser }}<el-icon><ArrowDown /></el-icon>
-            </span>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="password">修改密码</el-dropdown-item>
-                <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
+  <div class="admin-shell">
+    <!-- Dark sidebar -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-title">L1nker</span>
+        <span class="brand-sub">Admin Panel</span>
       </div>
-    </el-header>
 
-    <el-row :gutter="20" class="main-content">
-      <!-- 左侧导航栏 -->
-      <el-col :span="6">
-        <el-card class="nav-card">
-          <h3>管理面板</h3>
-          <el-menu
-            :default-active="activeMenu"
-            @select="handleMenuSelect"
-          >
-            <!-- 所有用户都能看到的菜单项 -->
-            <el-menu-item index="landing-pages">
-              <el-icon><Document /></el-icon>
-              <span>落地页管理</span>
-            </el-menu-item>
+      <nav class="sidebar-nav">
+        <button
+          v-for="item in visibleNavItems"
+          :key="item.id"
+          :class="['nav-item', { active: activeMenu === item.id }]"
+          @click="handleMenuSelect(item.id)"
+        >
+          <el-icon><component :is="item.icon" /></el-icon>
+          <span>{{ item.label }}</span>
+        </button>
+      </nav>
 
-            <!-- 仅管理员可见 -->
-            <el-menu-item index="users" v-if="isAdmin">
-              <el-icon><User /></el-icon>
-              <span>用户管理</span>
-            </el-menu-item>
+      <div class="sidebar-user">
+        <div class="user-line">{{ currentUser }}</div>
+        <div class="role-line">{{ isAdmin ? 'Admin' : 'User' }}</div>
+        <button class="logout-btn" @click="logout">Sign out</button>
+      </div>
+    </aside>
 
-            <!-- 艺人管理 - 管理员看到所有，普通用户只看到自己的 -->
-            <el-menu-item index="artists">
-              <el-icon><Microphone /></el-icon>
-              <span>{{ isAdmin ? '艺人管理' : '我的艺人页' }}</span>
-            </el-menu-item>
+    <!-- Main content -->
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div class="topbar-title">{{ getCurrentPageName() }}</div>
+        <el-dropdown @command="handleDropdownCommand">
+          <span class="user-dropdown">
+            {{ currentUser }}<el-icon><ArrowDown /></el-icon>
+          </span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="password">修改密码</el-dropdown-item>
+              <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </header>
 
-            <!-- 所有用户都能修改密码 -->
-            <el-menu-item index="password">
-              <el-icon><Lock /></el-icon>
-              <span>修改密码</span>
-            </el-menu-item>
-          </el-menu>
-          <div class="user-info">
-            <p>当前用户: {{ currentUser }}</p>
-            <p>角色: {{ userRole }}</p>
-            <el-button type="danger" @click="logout">退出登录</el-button>
-          </div>
-        </el-card>
-      </el-col>
-
-      <!-- 右侧内容区 -->
-      <el-col :span="18">
-        <!-- 落地页管理 -->
-        <div v-if="activeMenu === 'landing-pages'">
-          <router-view />
-        </div>
-
-        <!-- 用户管理 -->
-        <div v-if="activeMenu === 'users' && isAdmin">
-          <UserManagement />
-        </div>
-
-        <!-- 艺人管理 -->
-        <div v-if="activeMenu === 'artists'">
-          <ArtistManagement />
-        </div>
-
-        <!-- 修改密码 -->
-        <div v-if="activeMenu === 'password'">
-          <ChangePassword />
-        </div>
-      </el-col>
-    </el-row>
+      <div class="admin-content">
+        <router-view v-if="activeMenu === 'landing-pages'" />
+        <UserManagement v-else-if="activeMenu === 'users' && isAdmin" />
+        <ArtistManagement v-else-if="activeMenu === 'artists'" />
+        <ChangePassword v-else-if="activeMenu === 'password'" />
+      </div>
+    </main>
   </div>
 </template>
 
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { Document, User, Microphone, Lock, ArrowDown } from '@element-plus/icons-vue';
-import ItemManagement from './AdminComponents/ItemManagement.vue';
 import UserManagement from './AdminComponents/UserManagement.vue';
 import ArtistManagement from './AdminComponents/ArtistManagement.vue';
 import ChangePassword from './AdminComponents/ChangePassword.vue';
@@ -109,7 +68,6 @@ export default {
     Microphone,
     Lock,
     ArrowDown,
-    ItemManagement,
     UserManagement,
     ArtistManagement,
     ChangePassword,
@@ -120,6 +78,15 @@ export default {
     const userRole = ref('');
 
     const isAdmin = computed(() => userRole.value === 'admin');
+
+    const navItems = computed(() => [
+      { id: 'landing-pages', label: '落地页管理', icon: Document },
+      { id: 'users', label: '用户管理', icon: User, adminOnly: true },
+      { id: 'artists', label: isAdmin.value ? '艺人管理' : '我的艺人页', icon: Microphone },
+      { id: 'password', label: '修改密码', icon: Lock },
+    ]);
+
+    const visibleNavItems = computed(() => navItems.value.filter((i) => !i.adminOnly || isAdmin.value));
 
     const handleMenuSelect = (index) => {
       activeMenu.value = index;
@@ -157,8 +124,6 @@ export default {
           window.location.href = '/login';
           return;
         }
-
-        // Fetch the authenticated user's info from the server (IDaaS-backed).
         const res = await fetch('/api/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -184,6 +149,7 @@ export default {
       currentUser,
       userRole,
       isAdmin,
+      visibleNavItems,
       handleMenuSelect,
       handleDropdownCommand,
       getCurrentPageName,
@@ -194,85 +160,159 @@ export default {
 </script>
 
 <style scoped>
-.admin-page {
-  background-color: #f5f7fa;
+.admin-shell {
+  display: flex;
   min-height: 100vh;
+  background-color: #fafafa;
+  color: #18181b;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-.admin-header {
-  background-color: #ffffff;
-  border-bottom: 1px solid #ebeef5;
-  padding: 0 20px;
-  height: 60px !important;
+/* ---------- Sidebar ---------- */
+.admin-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background-color: #18181b;
+  color: #d4d4d8;
   display: flex;
-  align-items: center;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  flex-direction: column;
 }
 
-.header-content {
-  width: 100%;
+.sidebar-brand {
+  padding: 24px 20px;
+  border-bottom: 1px solid #27272a;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
 }
 
-.header-left h2 {
-  margin: 0;
-  color: #409eff;
+.brand-title {
+  font-family: 'Space Grotesk', sans-serif;
   font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.02em;
 }
 
-.header-right {
+.brand-sub {
+  font-size: 11px;
+  color: #71717a;
+  margin-top: 2px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: #a1a1aa;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.nav-item:hover {
+  background-color: #27272a;
+  color: #ffffff;
+}
+
+.nav-item.active {
+  background-color: #27272a;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.sidebar-user {
+  padding: 16px 16px 20px;
+  border-top: 1px solid #27272a;
+}
+
+.user-line {
+  color: #fafafa;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.role-line {
+  color: #71717a;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.logout-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #3f3f46;
+  background: transparent;
+  color: #a1a1aa;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.logout-btn:hover {
+  color: #ffffff;
+  border-color: #71717a;
+}
+
+/* ---------- Main ---------- */
+.admin-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-topbar {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e4e4e7;
+  padding: 0 28px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topbar-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #18181b;
 }
 
 .user-dropdown {
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border-radius: 4px;
-  transition: background-color 0.3s;
+  gap: 6px;
+  padding: 6px 12px;
+  color: #3f3f46;
+  font-size: 14px;
+  transition: background-color 0.15s;
 }
 
 .user-dropdown:hover {
-  background-color: #f5f7fa;
+  background-color: #f4f4f5;
 }
 
-.main-content {
-  padding: 20px;
-}
-
-.nav-card {
-  position: sticky;
-  top: 80px;
-}
-
-.nav-card h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  text-align: center;
-  color: #409eff;
-}
-
-.user-info {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #ebeef5;
-  text-align: center;
-}
-
-.user-info p {
-  margin: 10px 0;
-  color: #606266;
-  font-size: 14px;
-}
-
-.user-info .el-button {
-  width: 100%;
-  margin-top: 10px;
+.admin-content {
+  flex: 1;
+  padding: 28px;
+  background-color: #fafafa;
 }
 </style>
