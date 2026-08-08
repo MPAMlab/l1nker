@@ -163,14 +163,20 @@ export default {
         const data = await response.json();
         users.value = data;
 
-        // Get current user ID
-        const token = localStorage.getItem('authToken');
-        if (token) {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          currentUserId.value = payload.userId;
+        // Get current user id via /api/me (OAuth token is not a JWT)
+        try {
+          const meRes = await fetch('/api/me', {
+            headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+          });
+          if (meRes.ok) {
+            const me = await meRes.json();
+            currentUserId.value = me.userId ?? null;
+          }
+        } catch (e) {
+          console.error('Failed to fetch current user:', e);
         }
       } catch (error) {
-        ElMessage.error('获取用户列表失败: ' + error.message);
+        ElMessage.error('获取用户列表失败: ' + (error instanceof Error ? error.message : String(error)));
       } finally {
         loading.value = false;
       }

@@ -434,12 +434,19 @@ export default {
       }
     };
 
-    onMounted(() => {
-      // Get current user role
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        currentUserRole.value = payload.role || 'user';
+    onMounted(async () => {
+      // Get current user role via /api/me (OAuth token is not a JWT)
+      try {
+        const token = localStorage.getItem('authToken');
+        const res = await fetch('/api/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const me = await res.json();
+          currentUserRole.value = me.role || 'user';
+        }
+      } catch (e) {
+        console.error('Failed to fetch current user role:', e);
       }
 
       fetchArtists();
