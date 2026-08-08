@@ -49,6 +49,30 @@ export async function validatePermissions(
   } catch (error) {
     console.error('Failed to look up l1nker user:', error);
   }
+
+  // 3. Auto-provision: the IDaaS user has no l1nker account yet — create one
+  //    with default permissions so they can use the app. Admins can later
+  //    adjust role / managed projects in l1nker's user management page.
+  if (!user) {
+    const defaultRole = 'user';
+    const defaultManaged = '*';
+    try {
+      await env.l1nker_db
+        .prepare(
+          'INSERT OR IGNORE INTO l1nker_user (username, password, role, managed_projects) VALUES (?, ?, ?, ?)'
+        )
+        .bind(auth.username, 'oauth-provisioned', defaultRole, defaultManaged)
+        .run();
+      user = await env.l1nker_db
+        .prepare('SELECT id, username, role, managed_projects FROM l1nker_user WHERE username = ?')
+        .bind(auth.username)
+        .first<L1nkerUserRow>();
+      console.log(`Auto-provisioned l1nker account for "${auth.username}"`);
+    } catch (error) {
+      console.error('Failed to auto-provision l1nker user:', error);
+    }
+  }
+
   if (!user) {
     return {
       authorized: false,
