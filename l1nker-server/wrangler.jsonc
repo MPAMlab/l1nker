@@ -1,0 +1,56 @@
+﻿{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "l1nker-server",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-09-23",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "account_id": "f64e8212f97d04229f537b65e047ae04",
+  "routes": [
+    {
+      "pattern": "sp.srt.pub/*",
+      "zone_name": "srt.pub"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MY_R2_BUCKET",
+      "bucket_name": "l1nkerbucket"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "l1nker_db",
+      "database_id": "aae152df-b2c7-439f-828c-b348e6114b09",
+      "database_name": "l1nker_db"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "a9b33f9c8cf54d7c89fd269387acf5dd"
+    }
+  ],
+  "vars": {
+    "CORS_ALLOWED_ORIGINS": [
+      "http://localhost:5173"
+    ]
+  },
+  "observability": {
+    "enabled": false,
+    "head_sampling_rate": 1,
+    "redact_query_string": false,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": true,
+      "persist": true,
+      "head_sampling_rate": 1
+    }
+  }
+}
